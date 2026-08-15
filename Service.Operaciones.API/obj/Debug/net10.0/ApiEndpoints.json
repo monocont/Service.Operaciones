@@ -1,0 +1,189 @@
+[
+  {
+    "ContainingType": "Service.Operaciones.API.Controllers.CargaController",
+    "Method": "ListarCargas",
+    "RelativePath": "api/v1/operaciones/cargas",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "empresaRuc",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "periodo",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "tipoArchivo",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "estado",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageNumber",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Service.Operaciones.API.Controllers.CargaController",
+    "Method": "ObtenerCargaPorId",
+    "RelativePath": "api/v1/operaciones/cargas/{idCarga}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idCarga",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Service.Operaciones.API.Controllers.CargaController",
+    "Method": "ListarCompras",
+    "RelativePath": "api/v1/operaciones/cargas/{idCarga}/compras",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idCarga",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "pageNumber",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Service.Operaciones.API.Controllers.CargaController",
+    "Method": "ObtenerErroresCarga",
+    "RelativePath": "api/v1/operaciones/cargas/{idCarga}/errores",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idCarga",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "pageNumber",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Service.Operaciones.API.Controllers.CargaController",
+    "Method": "ListarVentas",
+    "RelativePath": "api/v1/operaciones/cargas/{idCarga}/ventas",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "idCarga",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "pageNumber",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Service.Operaciones.API.Controllers.CargaController",
+    "Method": "CargarArchivoCompras",
+    "RelativePath": "api/v1/operaciones/cargas/compras",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "Archivo",
+        "Type": "Microsoft.AspNetCore.Http.IFormFile",
+        "IsRequired": false
+      },
+      {
+        "Name": "EmpresaRuc",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Periodo",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Service.Operaciones.API.Controllers.CargaController",
+    "Method": "CargarArchivoVentas",
+    "RelativePath": "api/v1/operaciones/cargas/ventas",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "Archivo",
+        "Type": "Microsoft.AspNetCore.Http.IFormFile",
+        "IsRequired": false
+      },
+      {
+        "Name": "EmpresaRuc",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Periodo",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
