@@ -3135,11 +3135,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.API\\Service.Operaciones.API.csproj",
+      "projectUniqueName": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.API\\Service.Operaciones.API.csproj",
       "projectName": "Service.Operaciones.API",
-      "projectPath": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.API\\Service.Operaciones.API.csproj",
+      "projectPath": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.API\\Service.Operaciones.API.csproj",
       "packagesPath": "C:\\Users\\marvi\\.nuget\\packages\\",
-      "outputPath": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.API\\obj\\",
+      "outputPath": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.API\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -3161,11 +3161,11 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Application\\Service.Operaciones.Application.csproj": {
-              "projectPath": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Application\\Service.Operaciones.Application.csproj"
+            "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Application\\Service.Operaciones.Application.csproj": {
+              "projectPath": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Application\\Service.Operaciones.Application.csproj"
             },
-            "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Infrastructure\\Service.Operaciones.Infrastructure.csproj": {
-              "projectPath": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Infrastructure\\Service.Operaciones.Infrastructure.csproj"
+            "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Infrastructure\\Service.Operaciones.Infrastructure.csproj": {
+              "projectPath": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Infrastructure\\Service.Operaciones.Infrastructure.csproj"
             }
           }
         }

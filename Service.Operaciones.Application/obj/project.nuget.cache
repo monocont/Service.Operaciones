@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "VEurik/hP4U=",
+  "dgSpecHash": "ZGKaGDfh/Kk=",
   "success": true,
-  "projectFilePath": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Application\\Service.Operaciones.Application.csproj",
+  "projectFilePath": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Application\\Service.Operaciones.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\marvi\\.nuget\\packages\\fluentvalidation\\11.12.0\\fluentvalidation.11.12.0.nupkg.sha512",
     "C:\\Users\\marvi\\.nuget\\packages\\mediatr\\12.5.0\\mediatr.12.5.0.nupkg.sha512",

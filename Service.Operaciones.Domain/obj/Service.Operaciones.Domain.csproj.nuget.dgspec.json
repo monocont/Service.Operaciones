@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Domain\\Service.Operaciones.Domain.csproj": {}
+    "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Domain\\Service.Operaciones.Domain.csproj": {}
   },
   "projects": {
-    "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Domain\\Service.Operaciones.Domain.csproj": {
+    "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Domain\\Service.Operaciones.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Domain\\Service.Operaciones.Domain.csproj",
+        "projectUniqueName": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Domain\\Service.Operaciones.Domain.csproj",
         "projectName": "Service.Operaciones.Domain",
-        "projectPath": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Domain\\Service.Operaciones.Domain.csproj",
+        "projectPath": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Domain\\Service.Operaciones.Domain.csproj",
         "packagesPath": "C:\\Users\\marvi\\.nuget\\packages\\",
-        "outputPath": "D:\\TESIS\\ANALISIS\\source\\Service.Operaciones\\Service.Operaciones.Domain\\obj\\",
+        "outputPath": "D:\\TESIS\\ANALISIS\\APP\\BackEnd\\Service.Operaciones\\Service.Operaciones.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
