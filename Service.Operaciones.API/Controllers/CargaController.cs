@@ -15,7 +15,7 @@ using System.Security.Claims;
 namespace Service.Operaciones.API.Controllers;
 
 [ApiController]
-[Route("api/v1/operaciones")]
+[Route("api/v1")]
 [Authorize]
 public class CargaController : ControllerBase
 {
@@ -57,24 +57,25 @@ public class CargaController : ControllerBase
     }
 
     /// <summary>
-    /// Lista las cargas de archivos SUNAT realizadas
+    /// Lista las cargas de archivos SUNAT realizadas (ordenadas por periodo desc y activo = true)
     /// </summary>
     [HttpGet("cargas")]
     public async Task<IActionResult> ListarCargas(
         [FromQuery] string empresaRuc,
-        [FromQuery] string? periodo,
-        [FromQuery] string? tipoArchivo,
-        [FromQuery] string? estado,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] string tipoArchivo,
+        [FromQuery] int pageNumber,
+        [FromQuery] int pageSize,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(tipoArchivo) || !Enum.TryParse<TipoArchivo>(tipoArchivo, ignoreCase: true, out var tipoArchivoEnum))
+        {
+            return BadRequest(new { success = false, message = "El parámetro tipoArchivo es obligatorio y debe ser 'Ventas' o 'Compras'." });
+        }
+
         var query = new ListarCargasQuery
         {
             EmpresaRuc = empresaRuc,
-            Periodo = periodo,
-            TipoArchivo = string.IsNullOrEmpty(tipoArchivo) ? null : Enum.Parse<TipoArchivo>(tipoArchivo, ignoreCase: true),
-            Estado = string.IsNullOrEmpty(estado) ? null : Enum.Parse<EstadoCarga>(estado, ignoreCase: true),
+            TipoArchivo = tipoArchivoEnum,
             PageNumber = pageNumber,
             PageSize = pageSize
         };
@@ -137,20 +138,16 @@ public class CargaController : ControllerBase
     }
 
     /// <summary>
-    /// Lista las ventas asociadas a una carga
+    /// Lista todas las ventas asociadas a una carga sin paginación
     /// </summary>
     [HttpGet("cargas/{idCarga:guid}/ventas")]
     public async Task<IActionResult> ListarVentas(
         [FromRoute] Guid idCarga,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
         var query = new ListarVentasQuery
         {
-            IdCarga = idCarga,
-            PageNumber = pageNumber,
-            PageSize = pageSize
+            IdCarga = idCarga
         };
 
         var resultado = await _mediator.Send(query, cancellationToken);

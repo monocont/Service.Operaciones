@@ -3,11 +3,15 @@
 ## ----------------------------------------------------
 [Bb]in/
 [Oo]bj/
+**/[Bb]in/
+**/[Oo]bj/
 [Ll]og/
 [Ll]ogs/
+**/[Ll]ogs/
 
 # Visual Studio files
 .vs/
+**/.vs/
 *.user
 *.userosscache
 *.sln.docstates
@@ -16,6 +20,7 @@
 
 # JetBrains Rider / Resharper
 .idea/
+**/.idea/
 _ReSharper*/
 *.DotSettings.user
 
@@ -36,6 +41,18 @@ x86/
 [Aa]rm/
 [Aa]rm64/
 bld/
+**/bin/
+**/obj/
+
+# File extensions that must never be tracked
+*.dll
+*.pdb
+*.exe
+*.cache
+*.FileListAbsolute.txt
+*.Up2Date
+*.json.cache
+*.dswa.cache.json
 
 # User-specific & local settings
 appsettings.*.local.json

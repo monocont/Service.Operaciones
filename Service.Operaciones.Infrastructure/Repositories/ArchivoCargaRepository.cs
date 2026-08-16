@@ -31,50 +31,26 @@ public class ArchivoCargaRepository : IArchivoCargaRepository
     }
 
     public async Task<List<ArchivoCarga>> ListarAsync(
-        string empresaRuc, string? periodo, TipoArchivo? tipoArchivo, EstadoCarga? estado,
+        string empresaRuc, TipoArchivo tipoArchivo,
         int pageNumber, int pageSize, CancellationToken cancellationToken)
     {
-        var query = _context.ArchivoCarga.AsNoTracking().Where(a => a.EmpresaRuc == empresaRuc);
-
-        if (!string.IsNullOrEmpty(periodo))
-        {
-            query = query.Where(a => a.Periodo == periodo);
-        }
-        if (tipoArchivo is not null)
-        {
-            query = query.Where(a => a.TipoArchivo == tipoArchivo);
-        }
-        if (estado is not null)
-        {
-            query = query.Where(a => a.Estado == estado);
-        }
-
-        return await query
-            .OrderByDescending(a => a.FechaCreacion)
+        return await _context.ArchivoCarga
+            .AsNoTracking()
+            .Where(a => a.EmpresaRuc == empresaRuc && a.TipoArchivo == tipoArchivo && a.Activo)
+            .OrderByDescending(a => a.Periodo)
+            .ThenByDescending(a => a.FechaCreacion)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<int> ContarAsync(
-        string empresaRuc, string? periodo, TipoArchivo? tipoArchivo, EstadoCarga? estado, CancellationToken cancellationToken)
+        string empresaRuc, TipoArchivo tipoArchivo, CancellationToken cancellationToken)
     {
-        var query = _context.ArchivoCarga.AsNoTracking().Where(a => a.EmpresaRuc == empresaRuc);
-
-        if (!string.IsNullOrEmpty(periodo))
-        {
-            query = query.Where(a => a.Periodo == periodo);
-        }
-        if (tipoArchivo is not null)
-        {
-            query = query.Where(a => a.TipoArchivo == tipoArchivo);
-        }
-        if (estado is not null)
-        {
-            query = query.Where(a => a.Estado == estado);
-        }
-
-        return await query.CountAsync(cancellationToken);
+        return await _context.ArchivoCarga
+            .AsNoTracking()
+            .Where(a => a.EmpresaRuc == empresaRuc && a.TipoArchivo == tipoArchivo && a.Activo)
+            .CountAsync(cancellationToken);
     }
 
     public async Task AgregarAsync(ArchivoCarga archivoCarga, CancellationToken cancellationToken)

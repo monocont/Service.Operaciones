@@ -8,9 +8,7 @@ namespace Service.Operaciones.Application.Queries.Carga.ListarCargas;
 public class ListarCargasQuery : IRequest<List<ListarCargasDTO>>
 {
     public required string EmpresaRuc { get; set; }
-    public string? Periodo { get; set; }
-    public TipoArchivo? TipoArchivo { get; set; }
-    public EstadoCarga? Estado { get; set; }
+    public required TipoArchivo TipoArchivo { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }

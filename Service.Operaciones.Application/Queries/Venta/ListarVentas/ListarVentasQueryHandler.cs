@@ -16,7 +16,7 @@ public class ListarVentasQueryHandler : IRequestHandler<ListarVentasQuery, List<
     public async Task<List<VentaDTO>> Handle(ListarVentasQuery request, CancellationToken cancellationToken)
     {
         var ventas = await _repositorio.ListarPorCargaAsync(
-            request.IdCarga, request.PageNumber, request.PageSize, cancellationToken);
+            request.IdCarga, cancellationToken);
 
         return ventas.Select(v => new VentaDTO
         {

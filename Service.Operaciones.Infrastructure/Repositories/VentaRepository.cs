@@ -13,7 +13,7 @@ public class VentaRepository : IVentaRepository
         _context = context;
     }
 
-    public async Task<List<Venta>> ListarPorCargaAsync(Guid idCarga, int pageNumber, int pageSize, CancellationToken cancellationToken)
+    public async Task<List<Venta>> ListarPorCargaAsync(Guid idCarga, CancellationToken cancellationToken)
     {
         return await _context.Venta
             .AsNoTracking()
@@ -21,8 +21,6 @@ public class VentaRepository : IVentaRepository
             .OrderBy(v => v.FechaEmision)
             .ThenBy(v => v.Serie)
             .ThenBy(v => v.Numero)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
 

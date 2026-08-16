@@ -17,9 +17,7 @@ public class ListarCargasQueryHandler : IRequestHandler<ListarCargasQuery, List<
     {
         var cargas = await _repositorio.ListarAsync(
             request.EmpresaRuc,
-            request.Periodo,
             request.TipoArchivo,
-            request.Estado,
             request.PageNumber,
             request.PageSize,
             cancellationToken);
@@ -29,15 +27,11 @@ public class ListarCargasQueryHandler : IRequestHandler<ListarCargasQuery, List<
             IdCarga = c.IdCarga,
             EmpresaRuc = c.EmpresaRuc,
             Periodo = c.Periodo,
-            TipoArchivo = c.TipoArchivo,
-            Formato = c.Formato,
+            Formato = c.Formato.ToString(),
             NombreOriginal = c.NombreOriginal,
-            Estado = c.Estado,
             NumRegistros = c.NumRegistros,
             NumRegistrosValidos = c.NumRegistrosValidos,
-            NumRegistrosError = c.NumRegistrosError,
-            FechaCreacion = c.FechaCreacion,
-            CreadoPor = c.CreadoPor
+            NumRegistrosError = c.NumRegistrosError
         }).ToList();
     }
 }
