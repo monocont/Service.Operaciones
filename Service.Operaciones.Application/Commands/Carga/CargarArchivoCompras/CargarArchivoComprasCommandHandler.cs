@@ -52,6 +52,13 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
             throw new ValidationException($"La empresa con RUC {request.EmpresaRuc} no esta registrada en el sistema");
         }
 
+        // 1.1 Validar si ya existe un registro de carga para el mismo periodo, empresa, tipo y usuario
+        if (await _archivoCargaRepo.ExisteCargaAsync(request.EmpresaRuc, request.Periodo, Tipo, request.Usuario, cancellationToken))
+        {
+            throw new ValidationException(
+                $"Ya existe una carga registrada de {Tipo} para la empresa con RUC {request.EmpresaRuc} en el periodo {request.Periodo}. No es posible volver a cargar dicho periodo.");
+        }
+
         // 2. Determinar formato
         var formato = Path.GetExtension(request.NombreArchivo).ToLower() == ".txt"
             ? FormatoArchivo.Txt

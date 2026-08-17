@@ -22,6 +22,21 @@ public class ArchivoCargaErrorRepository : IArchivoCargaErrorRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<Dictionary<Guid, int>> ContarPorCargasAsync(List<Guid> idsCarga, CancellationToken cancellationToken)
+    {
+        if (idsCarga == null || idsCarga.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await _context.ArchivoCargaError
+            .AsNoTracking()
+            .Where(e => idsCarga.Contains(e.IdCarga))
+            .GroupBy(e => e.IdCarga)
+            .Select(g => new { IdCarga = g.Key, Total = g.Count() })
+            .ToDictionaryAsync(x => x.IdCarga, x => x.Total, cancellationToken);
+    }
+
     public async Task AgregarRangoAsync(List<ArchivoCargaError> errores, CancellationToken cancellationToken)
     {
         await _context.ArchivoCargaError.AddRangeAsync(errores, cancellationToken);

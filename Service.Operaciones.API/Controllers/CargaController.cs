@@ -63,6 +63,7 @@ public class CargaController : ControllerBase
     public async Task<IActionResult> ListarCargas(
         [FromQuery] string empresaRuc,
         [FromQuery] string tipoArchivo,
+        [FromQuery] string? periodo,
         [FromQuery] int pageNumber,
         [FromQuery] int pageSize,
         CancellationToken cancellationToken = default)
@@ -76,6 +77,7 @@ public class CargaController : ControllerBase
         {
             EmpresaRuc = empresaRuc,
             TipoArchivo = tipoArchivoEnum,
+            Periodo = periodo,
             PageNumber = pageNumber,
             PageSize = pageSize
         };
@@ -117,20 +119,16 @@ public class CargaController : ControllerBase
     }
 
     /// <summary>
-    /// Lista las compras asociadas a una carga
+    /// Lista todas las compras asociadas a una carga sin paginación
     /// </summary>
     [HttpGet("cargas/{idCarga:guid}/compras")]
     public async Task<IActionResult> ListarCompras(
         [FromRoute] Guid idCarga,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
         var query = new ListarComprasQuery
         {
-            IdCarga = idCarga,
-            PageNumber = pageNumber,
-            PageSize = pageSize
+            IdCarga = idCarga
         };
 
         var resultado = await _mediator.Send(query, cancellationToken);

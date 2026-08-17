@@ -30,13 +30,32 @@ public class ArchivoCargaRepository : IArchivoCargaRepository
             cancellationToken);
     }
 
+    public Task<bool> ExisteCargaAsync(
+        string empresaRuc, string periodo, TipoArchivo tipoArchivo, string creadoPor, CancellationToken cancellationToken)
+    {
+        return _context.ArchivoCarga.AnyAsync(
+            a => a.EmpresaRuc == empresaRuc
+              && a.Periodo == periodo
+              && a.TipoArchivo == tipoArchivo
+              && a.CreadoPor == creadoPor
+              && a.Activo,
+            cancellationToken);
+    }
+
     public async Task<List<ArchivoCarga>> ListarAsync(
-        string empresaRuc, TipoArchivo tipoArchivo,
+        string empresaRuc, TipoArchivo tipoArchivo, string? periodo,
         int pageNumber, int pageSize, CancellationToken cancellationToken)
     {
-        return await _context.ArchivoCarga
+        var query = _context.ArchivoCarga
             .AsNoTracking()
-            .Where(a => a.EmpresaRuc == empresaRuc && a.TipoArchivo == tipoArchivo && a.Activo)
+            .Where(a => a.EmpresaRuc == empresaRuc && a.TipoArchivo == tipoArchivo && a.Activo);
+
+        if (!string.IsNullOrWhiteSpace(periodo))
+        {
+            query = query.Where(a => a.Periodo == periodo.Trim());
+        }
+
+        return await query
             .OrderByDescending(a => a.Periodo)
             .ThenByDescending(a => a.FechaCreacion)
             .Skip((pageNumber - 1) * pageSize)

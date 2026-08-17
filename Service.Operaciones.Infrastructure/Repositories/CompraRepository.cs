@@ -13,7 +13,7 @@ public class CompraRepository : ICompraRepository
         _context = context;
     }
 
-    public async Task<List<Compra>> ListarPorCargaAsync(Guid idCarga, int pageNumber, int pageSize, CancellationToken cancellationToken)
+    public async Task<List<Compra>> ListarPorCargaAsync(Guid idCarga, CancellationToken cancellationToken)
     {
         return await _context.Compra
             .AsNoTracking()
@@ -21,8 +21,6 @@ public class CompraRepository : ICompraRepository
             .OrderBy(c => c.FechaEmision)
             .ThenBy(c => c.Serie)
             .ThenBy(c => c.Numero)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
 

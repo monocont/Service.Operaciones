@@ -26,6 +26,7 @@ public class ListarVentasQueryHandler : IRequestHandler<ListarVentasQuery, List<
             Serie = v.Serie,
             Numero = v.Numero,
             FechaEmision = v.FechaEmision,
+            CodigoTipoDocIdentidad = v.CodigoTipoDocIdentidad,
             NroDocIdentidad = v.NroDocIdentidad,
             RazonSocial = v.RazonSocial,
             BiGravada = v.BiGravada,

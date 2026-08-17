@@ -8,6 +8,7 @@ public class VentaDTO
     public string Serie { get; set; } = string.Empty;
     public string Numero { get; set; } = string.Empty;
     public DateTime FechaEmision { get; set; }
+    public string CodigoTipoDocIdentidad { get; set; } = string.Empty;
     public string NroDocIdentidad { get; set; } = string.Empty;
     public string RazonSocial { get; set; } = string.Empty;
     public decimal BiGravada { get; set; }

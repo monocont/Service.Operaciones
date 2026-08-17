@@ -16,7 +16,7 @@ public class ListarComprasQueryHandler : IRequestHandler<ListarComprasQuery, Lis
     public async Task<List<CompraDTO>> Handle(ListarComprasQuery request, CancellationToken cancellationToken)
     {
         var compras = await _repositorio.ListarPorCargaAsync(
-            request.IdCarga, request.PageNumber, request.PageSize, cancellationToken);
+            request.IdCarga, cancellationToken);
 
         return compras.Select(c => new CompraDTO
         {
@@ -26,6 +26,7 @@ public class ListarComprasQueryHandler : IRequestHandler<ListarComprasQuery, Lis
             Serie = c.Serie,
             Numero = c.Numero,
             FechaEmision = c.FechaEmision,
+            CodigoTipoDocIdentidad = c.CodigoTipoDocIdentidad,
             NroDocIdentidad = c.NroDocIdentidad,
             RazonSocial = c.RazonSocial,
             BiGravadoDg = c.BiGravadoDg,
