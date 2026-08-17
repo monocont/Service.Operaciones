@@ -49,6 +49,7 @@ public class Venta : EntidadAuditoria
 
     public string? CodigoTipoNota { get; private set; }
     public string CodigoEstadoComprobante { get; private set; } = string.Empty;
+    public string? CamposLibres { get; private set; }
 
     private Venta() { }
 
@@ -92,7 +93,8 @@ public class Venta : EntidadAuditoria
         decimal valorOpGratuitas = 0,
         string? tipoOperacion = null,
         string? damCp = null,
-        string? codigoTipoNota = null)
+        string? codigoTipoNota = null,
+        string? camposLibres = null)
     {
         return new Venta
         {
@@ -136,6 +138,7 @@ public class Venta : EntidadAuditoria
             DamCp = damCp,
             CodigoTipoNota = codigoTipoNota,
             CodigoEstadoComprobante = codigoEstadoComprobante,
+            CamposLibres = camposLibres,
             Activo = true,
             FechaCreacion = DateTime.UtcNow,
             CreadoPor = usuarioCreacion

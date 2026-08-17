@@ -36,7 +36,8 @@ public class ListarVentasQueryHandler : IRequestHandler<ListarVentasQuery, List<
             TipoCambio = v.TipoCambio,
             CodigoEstadoComprobante = v.CodigoEstadoComprobante,
             CodigoTipoNota = v.CodigoTipoNota,
-            TipoOperacion = v.TipoOperacion
+            TipoOperacion = v.TipoOperacion,
+            CamposLibres = v.CamposLibres
         }).ToList();
     }
 }

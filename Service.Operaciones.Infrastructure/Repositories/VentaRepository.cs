@@ -38,6 +38,17 @@ public class VentaRepository : IVentaRepository
                       cancellationToken);
     }
 
+    public async Task<List<string>> ObtenerNumerosPorSerieYPeriodoAsync(string empresaRuc, string periodo, string codigoTipoCp, string serie, CancellationToken cancellationToken)
+    {
+        return await _context.Venta.AsNoTracking()
+            .Where(v => v.EmpresaRuc == empresaRuc
+                     && v.Periodo == periodo
+                     && v.CodigoTipoCp == codigoTipoCp
+                     && v.Serie == serie)
+            .Select(v => v.Numero)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AgregarRangoAsync(List<Venta> ventas, CancellationToken cancellationToken)
     {
         await _context.Venta.AddRangeAsync(ventas, cancellationToken);

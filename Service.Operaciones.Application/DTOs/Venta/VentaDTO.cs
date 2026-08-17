@@ -19,4 +19,5 @@ public class VentaDTO
     public string CodigoEstadoComprobante { get; set; } = string.Empty;
     public string? CodigoTipoNota { get; set; }
     public string? TipoOperacion { get; set; }
+    public string? CamposLibres { get; set; }
 }
