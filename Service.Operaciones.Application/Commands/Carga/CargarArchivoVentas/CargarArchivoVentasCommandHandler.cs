@@ -5,6 +5,7 @@ using Service.Operaciones.Application.DTOs.Carga;
 using Service.Operaciones.Application.Interfaces;
 using Service.Operaciones.Domain.Entities;
 using Service.Operaciones.Domain.Enums;
+using VentaEntity = Service.Operaciones.Domain.Entities.Venta;
 
 namespace Service.Operaciones.Application.Commands.Carga.CargarArchivoVentas;
 
@@ -117,7 +118,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
 
             // 7. Procesar y guardar el 100% de los comprobantes en operaciones.venta
             var errores = new List<ArchivoCargaError>();
-            var ventas = new List<Venta>();
+            var ventas = new List<VentaEntity>();
             var lineasValidas = new List<Dictionary<string, string>>();
 
             var anioPeriodo = int.Parse(request.Periodo[..4]);
@@ -421,9 +422,9 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
         return errores;
     }
 
-    private static Venta ConstruirVenta(Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
+    private static VentaEntity ConstruirVenta(Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
     {
-        return Venta.Crear(
+        return VentaEntity.Crear(
             empresaRuc: empresaRuc,
             periodo: periodo,
             idCarga: idCarga,

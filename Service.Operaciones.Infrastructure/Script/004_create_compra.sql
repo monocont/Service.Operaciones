@@ -54,12 +54,12 @@ CREATE TABLE IF NOT EXISTS operaciones.compra (
     activo                  BOOLEAN NOT NULL DEFAULT TRUE,
 
     CONSTRAINT pk_compra PRIMARY KEY (id_compra),
-    CONSTRAINT uq_compra_car_sunat UNIQUE (empresa_ruc, periodo, car_sunat),
     CONSTRAINT fk_co_carga FOREIGN KEY (id_carga)
         REFERENCES operaciones.archivo_carga(id_carga) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_compra_carga        ON operaciones.compra (id_carga);
+CREATE INDEX IF NOT EXISTS idx_compra_car_sunat    ON operaciones.compra (empresa_ruc, periodo, car_sunat);
 CREATE INDEX IF NOT EXISTS idx_compra_empresa_per  ON operaciones.compra (empresa_ruc, periodo, fecha_emision);
 CREATE INDEX IF NOT EXISTS idx_compra_tipo_serie   ON operaciones.compra (codigo_tipo_cp, serie, numero);
 CREATE INDEX IF NOT EXISTS idx_compra_proveedor    ON operaciones.compra (nro_doc_identidad, fecha_emision);

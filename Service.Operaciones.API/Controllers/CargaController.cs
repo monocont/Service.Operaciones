@@ -152,6 +152,26 @@ public class CargaController : ControllerBase
         return Ok(resultado);
     }
 
+    /// <summary>
+    /// Actualiza y sincroniza los comprobantes de ventas de una carga (eliminaciones, adiciones futuras) y revalida observaciones
+    /// </summary>
+    [HttpPost("cargas/{idCarga:guid}/actualizar-ventas")]
+    public async Task<IActionResult> ActualizarVentas(
+        [FromRoute] Guid idCarga,
+        [FromBody] ActualizarVentasRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new Service.Operaciones.Application.Commands.Venta.ActualizarVentas.ActualizarVentasCommand
+        {
+            IdCarga = idCarga,
+            EliminadosIds = request?.EliminadosIds ?? new List<Guid>(),
+            Usuario = ObtenerUsuario()
+        };
+
+        var resultado = await _mediator.Send(command, cancellationToken);
+        return Ok(resultado);
+    }
+
     private string ObtenerUsuario()
     {
         return User.Identity?.Name ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "sistema";
@@ -187,4 +207,9 @@ public class CargarArchivoRequest
     public required IFormFile Archivo { get; set; }
     public required string EmpresaRuc { get; set; }
     public required string Periodo { get; set; }
+}
+
+public class ActualizarVentasRequest
+{
+    public List<Guid> EliminadosIds { get; set; } = new();
 }

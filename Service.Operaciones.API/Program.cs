@@ -100,6 +100,7 @@ builder.Services.AddScoped<IVentaRepository, VentaRepository>();
 // Servicios de Application
 builder.Services.AddScoped<IHashService, HashService>();
 builder.Services.AddScoped<IArchivoSunatParserFactory, ArchivoSunatParserFactory>();
+builder.Services.AddScoped<IVentaValidationService, Service.Operaciones.Application.Services.VentaValidationService>();
 
 // HttpClient para Service.Empresa
 var empresaUrl = builder.Configuration.GetSection("ServiceUrls:Empresa").Value ?? "http://localhost:5001";

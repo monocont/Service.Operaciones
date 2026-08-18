@@ -124,8 +124,7 @@ public class OperacionesDbContext : DbContext
             entity.HasQueryFilter(e => e.Activo);
 
             entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.CarSunat })
-                .IsUnique()
-                .HasDatabaseName("uq_compra_car_sunat");
+                .HasDatabaseName("idx_compra_car_sunat");
             entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_compra_carga");
             entity.HasIndex(e => new { e.CodigoTipoCp, e.Serie, e.Numero }).HasDatabaseName("idx_compra_tipo_serie_num");
         });
@@ -183,8 +182,7 @@ public class OperacionesDbContext : DbContext
             entity.HasQueryFilter(e => e.Activo);
 
             entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.CarSunat })
-                .IsUnique()
-                .HasDatabaseName("uq_venta_car_sunat");
+                .HasDatabaseName("idx_venta_car_sunat");
             entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_venta_carga");
             entity.HasIndex(e => new { e.Serie, e.Numero }).HasDatabaseName("idx_venta_serie_num");
         });

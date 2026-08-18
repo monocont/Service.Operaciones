@@ -9,4 +9,5 @@ public interface IVentaRepository
     Task<bool> ExistePorCarSunatAsync(string empresaRuc, string periodo, string carSunat, CancellationToken cancellationToken);
     Task<List<string>> ObtenerNumerosPorSerieYPeriodoAsync(string empresaRuc, string periodo, string codigoTipoCp, string serie, CancellationToken cancellationToken);
     Task AgregarRangoAsync(List<Venta> ventas, CancellationToken cancellationToken);
+    Task EliminarRangoFisicoAsync(List<Guid> idsVenta, CancellationToken cancellationToken);
 }

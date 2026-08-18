@@ -41,4 +41,16 @@ public class ArchivoCargaErrorRepository : IArchivoCargaErrorRepository
     {
         await _context.ArchivoCargaError.AddRangeAsync(errores, cancellationToken);
     }
+
+    public async Task EliminarPorCargaAsync(Guid idCarga, CancellationToken cancellationToken)
+    {
+        var errores = await _context.ArchivoCargaError
+            .Where(e => e.IdCarga == idCarga)
+            .ToListAsync(cancellationToken);
+
+        if (errores.Count > 0)
+        {
+            _context.ArchivoCargaError.RemoveRange(errores);
+        }
+    }
 }

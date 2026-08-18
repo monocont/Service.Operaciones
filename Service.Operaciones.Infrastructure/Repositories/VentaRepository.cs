@@ -53,4 +53,18 @@ public class VentaRepository : IVentaRepository
     {
         await _context.Venta.AddRangeAsync(ventas, cancellationToken);
     }
+
+    public async Task EliminarRangoFisicoAsync(List<Guid> idsVenta, CancellationToken cancellationToken)
+    {
+        if (idsVenta == null || idsVenta.Count == 0) return;
+
+        var ventasAEliminar = await _context.Venta
+            .Where(v => idsVenta.Contains(v.IdVenta))
+            .ToListAsync(cancellationToken);
+
+        if (ventasAEliminar.Count > 0)
+        {
+            _context.Venta.RemoveRange(ventasAEliminar);
+        }
+    }
 }
