@@ -67,4 +67,13 @@ public class VentaRepository : IVentaRepository
             _context.Venta.RemoveRange(ventasAEliminar);
         }
     }
+
+    public async Task<List<Venta>> ObtenerPorIdsAsync(List<Guid> idsVenta, CancellationToken cancellationToken)
+    {
+        if (idsVenta == null || idsVenta.Count == 0) return new List<Venta>();
+
+        return await _context.Venta
+            .Where(v => idsVenta.Contains(v.IdVenta))
+            .ToListAsync(cancellationToken);
+    }
 }

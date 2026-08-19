@@ -144,4 +144,40 @@ public class Venta : EntidadAuditoria
             CreadoPor = usuarioCreacion
         };
     }
+
+    public void ActualizarDatos(
+        string codigoTipoCp,
+        string serie,
+        string numero,
+        DateTime fechaEmision,
+        string codigoTipoDocIdentidad,
+        string nroDocIdentidad,
+        string razonSocial,
+        decimal biGravada,
+        decimal igvIpm,
+        decimal totalCp,
+        string codigoMoneda,
+        decimal tipoCambio,
+        string codigoEstadoComprobante,
+        string carSunat,
+        string usuarioModificacion)
+    {
+        CodigoTipoCp = codigoTipoCp;
+        Serie = serie;
+        Numero = numero;
+        FechaEmision = fechaEmision;
+        CodigoTipoDocIdentidad = codigoTipoDocIdentidad;
+        NroDocIdentidad = nroDocIdentidad;
+        RazonSocial = razonSocial;
+        BiGravada = biGravada;
+        IgvIpm = igvIpm;
+        TotalCp = totalCp;
+        CodigoMoneda = codigoMoneda;
+        TipoCambio = tipoCambio;
+        CodigoEstadoComprobante = codigoEstadoComprobante;
+        CarSunat = carSunat;
+
+        ModificadoPor = usuarioModificacion;
+        FechaModificacion = DateTime.UtcNow;
+    }
 }

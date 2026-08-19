@@ -10,4 +10,5 @@ public interface IVentaRepository
     Task<List<string>> ObtenerNumerosPorSerieYPeriodoAsync(string empresaRuc, string periodo, string codigoTipoCp, string serie, CancellationToken cancellationToken);
     Task AgregarRangoAsync(List<Venta> ventas, CancellationToken cancellationToken);
     Task EliminarRangoFisicoAsync(List<Guid> idsVenta, CancellationToken cancellationToken);
+    Task<List<Venta>> ObtenerPorIdsAsync(List<Guid> idsVenta, CancellationToken cancellationToken);
 }

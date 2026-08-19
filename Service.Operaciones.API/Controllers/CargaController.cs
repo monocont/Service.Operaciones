@@ -165,6 +165,8 @@ public class CargaController : ControllerBase
         {
             IdCarga = idCarga,
             EliminadosIds = request?.EliminadosIds ?? new List<Guid>(),
+            Nuevos = request?.Nuevos ?? new List<Service.Operaciones.Application.Commands.Venta.ActualizarVentas.CrearVentaRegistroDTO>(),
+            Modificados = request?.Modificados ?? new List<Service.Operaciones.Application.Commands.Venta.ActualizarVentas.ModificarVentaRegistroDTO>(),
             Usuario = ObtenerUsuario()
         };
 
@@ -212,4 +214,6 @@ public class CargarArchivoRequest
 public class ActualizarVentasRequest
 {
     public List<Guid> EliminadosIds { get; set; } = new();
+    public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentas.CrearVentaRegistroDTO> Nuevos { get; set; } = new();
+    public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentas.ModificarVentaRegistroDTO> Modificados { get; set; } = new();
 }
