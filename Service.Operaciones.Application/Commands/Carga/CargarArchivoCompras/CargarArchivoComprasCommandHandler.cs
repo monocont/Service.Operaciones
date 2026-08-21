@@ -215,7 +215,7 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
                 errores.Add(ArchivoCargaError.Crear(
                     archivoCarga.IdCarga, 0,
                     TipoErrorCarga.Secuencia, advertencia,
-                    severidad: SeveridadError.Warning));
+                    severidad: SeveridadError.Advertencia));
             }
 
             // 9. Persistir TODO dentro de la transacción del Unit of Work
@@ -229,7 +229,11 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
                 await _archivoCargaErrorRepo.AgregarRangoAsync(errores, cancellationToken);
             }
 
-            archivoCarga.ActualizarConteo(resultados.Count, validosCount, erroresCount);
+            var totalBiCompras = compras.Sum(c => c.BiGravadoDg + c.BiGravadoDgng + c.BiGravadoDng);
+            var totalIgvCompras = compras.Sum(c => c.IgvIpmDg + c.IgvIpmDgng + c.IgvIpmDng);
+            var totalGenCompras = compras.Sum(c => c.TotalCp);
+
+            archivoCarga.ActualizarConteoYMontos(resultados.Count, validosCount, erroresCount, totalBiCompras, totalIgvCompras, totalGenCompras);
             await _archivoCargaRepo.ActualizarAsync(archivoCarga, cancellationToken);
 
             // Guardar cambios y confirmar transacción atómicamente
@@ -250,6 +254,9 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
                 NumRegistros = archivoCarga.NumRegistros,
                 NumRegistrosValidos = archivoCarga.NumRegistrosValidos,
                 NumRegistrosError = archivoCarga.NumRegistrosError,
+                TotalBaseImponible = archivoCarga.TotalBaseImponible,
+                TotalIgv = archivoCarga.TotalIgv,
+                TotalGeneral = archivoCarga.TotalGeneral,
                 Observaciones = archivoCarga.Observaciones
             };
         }

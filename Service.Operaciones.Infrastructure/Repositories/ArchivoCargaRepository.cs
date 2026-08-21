@@ -84,7 +84,13 @@ public class ArchivoCargaRepository : IArchivoCargaRepository
         {
             _context.ArchivoCarga.Update(archivoCarga);
         }
-        // Si ya está en estado Added o Modified en el contexto, sus propiedades modificadas ya se rastrean sin forzar Update
         return Task.CompletedTask;
+    }
+
+    public async Task EliminarFisicoAsync(Guid idCarga, CancellationToken cancellationToken)
+    {
+        await _context.ArchivoCarga
+            .Where(a => a.IdCarga == idCarga)
+            .ExecuteDeleteAsync(cancellationToken);
     }
 }

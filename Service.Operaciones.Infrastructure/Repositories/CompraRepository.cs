@@ -42,4 +42,11 @@ public class CompraRepository : ICompraRepository
     {
         await _context.Compra.AddRangeAsync(compras, cancellationToken);
     }
+
+    public async Task EliminarPorCargaFisicoAsync(Guid idCarga, CancellationToken cancellationToken)
+    {
+        await _context.Compra
+            .Where(c => c.IdCarga == idCarga)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
 }

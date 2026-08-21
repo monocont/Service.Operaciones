@@ -15,6 +15,9 @@ public class ObtenerCargaPorIdDTO
     public int NumRegistros { get; set; }
     public int NumRegistrosValidos { get; set; }
     public int NumRegistrosError { get; set; }
+    public decimal TotalBaseImponible { get; set; }
+    public decimal TotalIgv { get; set; }
+    public decimal TotalGeneral { get; set; }
     public string? Observaciones { get; set; }
     public DateTime? FechaCreacion { get; set; }
     public string? CreadoPor { get; set; }

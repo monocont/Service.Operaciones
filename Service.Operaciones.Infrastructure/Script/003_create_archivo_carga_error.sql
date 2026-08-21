@@ -11,13 +11,13 @@ CREATE TABLE IF NOT EXISTS operaciones.archivo_carga_error (
     campo_error     VARCHAR(50),
     valor_lectura   VARCHAR(500),
     mensaje         VARCHAR(500) NOT NULL,
-    severidad       VARCHAR(7) NOT NULL DEFAULT 'Error',
+    severidad       VARCHAR(15) NOT NULL DEFAULT 'Error',
     fecha_registro  TIMESTAMP NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_archivo_carga_error PRIMARY KEY (id_error),
     CONSTRAINT fk_ace_carga FOREIGN KEY (id_carga)
         REFERENCES operaciones.archivo_carga(id_carga) ON DELETE CASCADE,
-    CONSTRAINT chk_ace_severidad CHECK (severidad IN ('Error','Warning')),
+    CONSTRAINT chk_ace_severidad CHECK (severidad IN ('Error','Advertencia')),
     CONSTRAINT chk_ace_tipo CHECK (tipo_error IN ('Formato','Validacion','Duplicado','Negocio','Secuencia'))
 );
 

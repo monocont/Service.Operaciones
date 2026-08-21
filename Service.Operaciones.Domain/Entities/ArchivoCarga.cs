@@ -14,6 +14,9 @@ public class ArchivoCarga : EntidadAuditoria
     public int NumRegistros { get; private set; }
     public int NumRegistrosValidos { get; private set; }
     public int NumRegistrosError { get; private set; }
+    public decimal TotalBaseImponible { get; private set; }
+    public decimal TotalIgv { get; private set; }
+    public decimal TotalGeneral { get; private set; }
     public EstadoCarga Estado { get; private set; }
     public string? Observaciones { get; private set; }
 
@@ -38,6 +41,9 @@ public class ArchivoCarga : EntidadAuditoria
             NombreOriginal = nombreOriginal,
             HashDocumento = hashDocumento,
             Estado = EstadoCarga.Procesando,
+            TotalBaseImponible = 0,
+            TotalIgv = 0,
+            TotalGeneral = 0,
             Activo = true,
             FechaCreacion = DateTime.UtcNow,
             CreadoPor = usuarioCreacion
@@ -49,7 +55,19 @@ public class ArchivoCarga : EntidadAuditoria
         NumRegistros = numRegistros;
         NumRegistrosValidos = numValidos;
         NumRegistrosError = numErrores;
-        Estado = numErrores == 0 ? EstadoCarga.Ok : EstadoCarga.Ok;
+        Estado = EstadoCarga.Ok;
+        FechaModificacion = DateTime.UtcNow;
+    }
+
+    public void ActualizarConteoYMontos(int numRegistros, int numValidos, int numErrores, decimal totalBaseImponible, decimal totalIgv, decimal totalGeneral)
+    {
+        NumRegistros = numRegistros;
+        NumRegistrosValidos = numValidos;
+        NumRegistrosError = numErrores;
+        TotalBaseImponible = totalBaseImponible;
+        TotalIgv = totalIgv;
+        TotalGeneral = totalGeneral;
+        Estado = EstadoCarga.Ok;
         FechaModificacion = DateTime.UtcNow;
     }
 

@@ -17,6 +17,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
     private readonly IEmpresaService _empresaService;
     private readonly IHashService _hashService;
     private readonly IArchivoSunatParserFactory _parserFactory;
+    private readonly IVentaValidationService _ventaValidationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CargarArchivoVentasCommandHandler> _logger;
 
@@ -29,6 +30,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
         IEmpresaService empresaService,
         IHashService hashService,
         IArchivoSunatParserFactory parserFactory,
+        IVentaValidationService ventaValidationService,
         IUnitOfWork unitOfWork,
         ILogger<CargarArchivoVentasCommandHandler> logger)
     {
@@ -38,6 +40,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
         _empresaService = empresaService;
         _hashService = hashService;
         _parserFactory = parserFactory;
+        _ventaValidationService = ventaValidationService;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -116,111 +119,29 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
                 throw;
             }
 
-            // 7. Procesar y guardar el 100% de los comprobantes en operaciones.venta
-            var errores = new List<ArchivoCargaError>();
+            // 7. Instanciar el 100% de los comprobantes como entidades Venta
             var ventas = new List<VentaEntity>();
-            var lineasValidas = new List<Dictionary<string, string>>();
-
-            var anioPeriodo = int.Parse(request.Periodo[..4]);
-            var mesPeriodo = int.Parse(request.Periodo[4..]);
-            var ultimoDiaPeriodo = new DateTime(anioPeriodo, mesPeriodo, DateTime.DaysInMonth(anioPeriodo, mesPeriodo));
-
-            // Mapa para contar duplicados por Serie + Número dentro del archivo: clave -> lista de líneas
-            var comprobantesPorSerieNumero = new Dictionary<string, List<int>>();
 
             foreach (var resultado in resultados)
             {
-                var numeroLinea = resultado.NumeroLinea;
-                var campos = resultado.Campos;
-
-                // 7.1 Construir Venta y agregarla SIEMPRE al listado a persistir (100% de los datos)
                 try
                 {
-                    var venta = ConstruirVenta(campos, request.EmpresaRuc, request.Periodo, archivoCarga.IdCarga, request.Usuario);
+                    var venta = ConstruirVenta(resultado.Campos, request.EmpresaRuc, request.Periodo, archivoCarga.IdCarga, request.Usuario);
                     ventas.Add(venta);
-                    lineasValidas.Add(campos);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error al instanciar entidad Venta en línea {Linea}: {Message}", numeroLinea, ex.Message);
-                }
-
-                // Obtener datos clave para validaciones
-                var serie = campos.GetValueOrDefault("serie") ?? string.Empty;
-                var numero = campos.GetValueOrDefault("numero") ?? string.Empty;
-                var periodoFila = campos.GetValueOrDefault("periodo") ?? string.Empty;
-                var fechaEmisionStr = campos.GetValueOrDefault("fecha_emision") ?? string.Empty;
-
-                // Validacion 1: Agrupar para detectar duplicados por Serie + Número
-                if (!string.IsNullOrWhiteSpace(serie) && !string.IsNullOrWhiteSpace(numero))
-                {
-                    var claveSerieNum = $"{serie.Trim().ToUpper()}|{numero.Trim().ToUpper()}";
-                    if (!comprobantesPorSerieNumero.ContainsKey(claveSerieNum))
-                    {
-                        comprobantesPorSerieNumero[claveSerieNum] = new List<int>();
-                    }
-                    comprobantesPorSerieNumero[claveSerieNum].Add(numeroLinea);
-                }
-
-                // Validacion 4: Verificar que el periodo cargado en la fila corresponda al periodo actual
-                if (!string.IsNullOrWhiteSpace(periodoFila) && periodoFila != request.Periodo)
-                {
-                    errores.Add(ArchivoCargaError.Crear(
-                        archivoCarga.IdCarga,
-                        numeroLinea,
-                        TipoErrorCarga.Negocio,
-                        $"Periodo inconsistente: El comprobante Serie '{serie}', Número '{numero}' corresponde al periodo '{periodoFila}', difiere del periodo cargado '{request.Periodo}'",
-                        campoError: "periodo",
-                        valorLectura: periodoFila,
-                        severidad: SeveridadError.Warning));
-                }
-
-                // Validacion 5: Verificar que la fecha de emisión sea como máximo el último día del mes del periodo
-                if (DateTime.TryParse(fechaEmisionStr, out var fechaEmision))
-                {
-                    if (fechaEmision.Date > ultimoDiaPeriodo.Date)
-                    {
-                        var periodoFecha = $"{fechaEmision.Year}{fechaEmision.Month:D2}";
-                        errores.Add(ArchivoCargaError.Crear(
-                            archivoCarga.IdCarga,
-                            numeroLinea,
-                            TipoErrorCarga.Negocio,
-                            $"Fecha fuera de periodo: El comprobante Serie '{serie}', Número '{numero}' tiene fecha de emisión {fechaEmision:dd/MM/yyyy} correspondiente al periodo '{periodoFecha}' (posterior al cierre {ultimoDiaPeriodo:dd/MM/yyyy})",
-                            campoError: "fecha_emision",
-                            valorLectura: fechaEmision.ToString("dd/MM/yyyy"),
-                            severidad: SeveridadError.Warning));
-                    }
+                    _logger.LogWarning(ex, "Error al instanciar entidad Venta en línea {Linea}: {Message}", resultado.NumeroLinea, ex.Message);
                 }
             }
 
-            // Validacion 1 (Registro): Reportar comprobantes duplicados por Serie + Número
-            foreach (var kvp in comprobantesPorSerieNumero.Where(kvp => kvp.Value.Count > 1))
-            {
-                var partes = kvp.Key.Split('|');
-                var s = partes[0];
-                var n = partes[1];
-                var cant = kvp.Value.Count;
-                var primeraLinea = kvp.Value.First();
-
-                errores.Add(ArchivoCargaError.Crear(
-                    archivoCarga.IdCarga,
-                    primeraLinea,
-                    TipoErrorCarga.Duplicado,
-                    $"Comprobante duplicado: La Serie '{s}', Número '{n}' se encuentra registrada {cant} veces en el archivo",
-                    campoError: "serie_numero",
-                    valorLectura: $"{s}-{n}",
-                    severidad: SeveridadError.Warning));
-            }
-
-            // Validacion 2: Validar correlatividad y saltos de secuencia dentro del archivo (por tipo_cp y serie)
-            var advertenciasSecuenciaInterna = ValidarSeriesConsecutivas(lineasValidas, archivoCarga.IdCarga);
-            errores.AddRange(advertenciasSecuenciaInterna);
-
-            // Validacion 3: Validar correlativo contra el periodo anterior inmediato
-            var periodoAnterior = ObtenerPeriodoAnterior(request.Periodo);
-            var advertenciasPeriodoAnterior = await ValidarCorrelativoPeriodoAnteriorAsync(
-                request.EmpresaRuc, periodoAnterior, lineasValidas, archivoCarga.IdCarga, cancellationToken);
-            errores.AddRange(advertenciasPeriodoAnterior);
+            // 7.1 Ejecutar TODAS las validaciones de negocio de forma centralizada a través de IVentaValidationService
+            var errores = await _ventaValidationService.ValidarVentasAsync(
+                archivoCarga.IdCarga,
+                request.EmpresaRuc,
+                request.Periodo,
+                ventas,
+                cancellationToken);
 
             // 8. Persistir TODO dentro de la transacción del Unit of Work
             if (ventas.Count > 0)
@@ -233,14 +154,18 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
                 await _archivoCargaErrorRepo.AgregarRangoAsync(errores, cancellationToken);
             }
 
-            archivoCarga.ActualizarConteo(resultados.Count, ventas.Count, errores.Count);
+            var totalBi = ventas.Sum(v => v.BiGravada);
+            var totalIgv = ventas.Sum(v => v.IgvIpm);
+            var totalGen = ventas.Sum(v => v.TotalCp);
+
+            archivoCarga.ActualizarConteoYMontos(resultados.Count, ventas.Count, errores.Count, totalBi, totalIgv, totalGen);
             await _archivoCargaRepo.ActualizarAsync(archivoCarga, cancellationToken);
 
             // Guardar cambios y confirmar transacción atómicamente
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-            _logger.LogInformation("Carga VENTAS completada exitosamente. IdCarga: {IdCarga}, Total: {Total}, Insertados: {Insertados}, Errores/Alertas: {Errores}",
-                archivoCarga.IdCarga, resultados.Count, ventas.Count, errores.Count);
+            _logger.LogInformation("Carga VENTAS completada exitosamente. IdCarga: {IdCarga}, Total: {Total}, Insertados: {Insertados}, Errores/Alertas: {Errores}, TotalGeneral: {TotalGeneral}",
+                archivoCarga.IdCarga, resultados.Count, ventas.Count, errores.Count, totalGen);
 
             return new CargarArchivoSunatDTO
             {
@@ -254,6 +179,9 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
                 NumRegistros = archivoCarga.NumRegistros,
                 NumRegistrosValidos = archivoCarga.NumRegistrosValidos,
                 NumRegistrosError = archivoCarga.NumRegistrosError,
+                TotalBaseImponible = archivoCarga.TotalBaseImponible,
+                TotalIgv = archivoCarga.TotalIgv,
+                TotalGeneral = archivoCarga.TotalGeneral,
                 Observaciones = archivoCarga.Observaciones
             };
         }
@@ -263,163 +191,6 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
             await _unitOfWork.RollbackTransactionAsync(cancellationToken);
             throw;
         }
-    }
-
-    private static string ObtenerPeriodoAnterior(string periodoActual)
-    {
-        var anio = int.Parse(periodoActual[..4]);
-        var mes = int.Parse(periodoActual[4..]);
-
-        if (mes == 1)
-        {
-            anio--;
-            mes = 12;
-        }
-        else
-        {
-            mes--;
-        }
-
-        return $"{anio}{mes:D2}";
-    }
-
-    private static List<ArchivoCargaError> ValidarSeriesConsecutivas(List<Dictionary<string, string>> lineas, Guid idCarga)
-    {
-        var errores = new List<ArchivoCargaError>();
-
-        var porSerie = lineas
-            .GroupBy(l => new
-            {
-                TipoCp = l.GetValueOrDefault("tipo_cp") ?? string.Empty,
-                Serie = (l.GetValueOrDefault("serie") ?? string.Empty).Trim().ToUpper()
-            })
-            .Where(g => !string.IsNullOrEmpty(g.Key.Serie));
-
-        foreach (var grupo in porSerie)
-        {
-            var numeros = grupo
-                .Select(l => new
-                {
-                    NumeroStr = l.GetValueOrDefault("numero") ?? string.Empty,
-                    Parseado = long.TryParse(l.GetValueOrDefault("numero")?.Trim(), out var n) ? (long?)n : null
-                })
-                .Where(x => x.Parseado.HasValue)
-                .Select(x => x.Parseado!.Value)
-                .Distinct()
-                .OrderBy(n => n)
-                .ToList();
-
-            if (numeros.Count < 2)
-            {
-                continue;
-            }
-
-            for (var i = 1; i < numeros.Count; i++)
-            {
-                var anterior = numeros[i - 1];
-                var actual = numeros[i];
-                var diferencia = actual - anterior;
-
-                if (diferencia > 1)
-                {
-                    if (diferencia == 2)
-                    {
-                        var faltante = anterior + 1;
-                        errores.Add(ArchivoCargaError.Crear(
-                            idCarga,
-                            0,
-                            TipoErrorCarga.Secuencia,
-                            $"Registro faltante: Serie '{grupo.Key.Serie}', Número: {faltante}",
-                            campoError: "numero",
-                            valorLectura: faltante.ToString(),
-                            severidad: SeveridadError.Warning));
-                    }
-                    else
-                    {
-                        var desde = anterior + 1;
-                        var hasta = actual - 1;
-                        errores.Add(ArchivoCargaError.Crear(
-                            idCarga,
-                            0,
-                            TipoErrorCarga.Secuencia,
-                            $"Múltiples registros faltantes: Serie '{grupo.Key.Serie}', del Número: {desde} al Número: {hasta}",
-                            campoError: "numero",
-                            valorLectura: $"{desde}-{hasta}",
-                            severidad: SeveridadError.Warning));
-                    }
-                }
-            }
-        }
-
-        return errores;
-    }
-
-    private async Task<List<ArchivoCargaError>> ValidarCorrelativoPeriodoAnteriorAsync(
-        string empresaRuc,
-        string periodoAnterior,
-        List<Dictionary<string, string>> lineasActuales,
-        Guid idCarga,
-        CancellationToken cancellationToken)
-    {
-        var errores = new List<ArchivoCargaError>();
-
-        var porSerie = lineasActuales
-            .GroupBy(l => new
-            {
-                TipoCp = l.GetValueOrDefault("tipo_cp") ?? string.Empty,
-                Serie = (l.GetValueOrDefault("serie") ?? string.Empty).Trim().ToUpper()
-            })
-            .Where(g => !string.IsNullOrEmpty(g.Key.Serie));
-
-        foreach (var grupo in porSerie)
-        {
-            var numerosActuales = grupo
-                .Select(l => long.TryParse(l.GetValueOrDefault("numero")?.Trim(), out var n) ? (long?)n : null)
-                .Where(n => n.HasValue)
-                .Select(n => n!.Value)
-                .OrderBy(n => n)
-                .ToList();
-
-            if (numerosActuales.Count == 0) continue;
-
-            var numeroMasBajoActual = numerosActuales.First();
-
-            // Consultar en la base de datos los comprobantes del periodo anterior para esta serie y tipo
-            var numerosPeriodoAnterior = await _ventaRepo.ObtenerNumerosPorSerieYPeriodoAsync(
-                empresaRuc, periodoAnterior, grupo.Key.TipoCp, grupo.Key.Serie, cancellationToken);
-
-            if (numerosPeriodoAnterior == null || numerosPeriodoAnterior.Count == 0)
-            {
-                // Si no existen registros en el periodo anterior para esta serie, no se aplica validación
-                continue;
-            }
-
-            var numerosAnterioresParseados = numerosPeriodoAnterior
-                .Select(numStr => long.TryParse(numStr?.Trim(), out var n) ? (long?)n : null)
-                .Where(n => n.HasValue)
-                .Select(n => n!.Value)
-                .OrderBy(n => n)
-                .ToList();
-
-            if (numerosAnterioresParseados.Count == 0) continue;
-
-            var ultimoCorrelativoAnterior = numerosAnterioresParseados.Last();
-            var correlativoEsperado = ultimoCorrelativoAnterior + 1;
-
-            if (numeroMasBajoActual != correlativoEsperado)
-            {
-                errores.Add(ArchivoCargaError.Crear(
-                    idCarga,
-                    0,
-                    TipoErrorCarga.Secuencia,
-                    $"Discontinuidad con periodo anterior: Para la Serie '{grupo.Key.Serie}', el último correlativo del periodo {periodoAnterior} fue {ultimoCorrelativoAnterior}, pero en este periodo inicia en {numeroMasBajoActual} (esperado: {correlativoEsperado})",
-                    campoError: "numero",
-                    valorLectura: $"Anterior: {ultimoCorrelativoAnterior}, Actual: {numeroMasBajoActual}",
-                    severidad: SeveridadError.Warning));
-            }
-        }
-
-        return errores;
     }
 
     private static VentaEntity ConstruirVenta(Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)

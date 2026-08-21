@@ -56,6 +56,9 @@ public class VentaValidationService : IVentaValidationService
             // Validación 4: Periodo
             if (!string.IsNullOrWhiteSpace(periodoVenta) && periodoVenta != periodo)
             {
+                var esPeriodoSuperior = string.Compare(periodoVenta, periodo, StringComparison.Ordinal) > 0;
+                var sevPeriodo = esPeriodoSuperior ? SeveridadError.Error : SeveridadError.Advertencia;
+
                 errores.Add(ArchivoCargaError.Crear(
                     idCarga,
                     numeroLinea,
@@ -63,13 +66,30 @@ public class VentaValidationService : IVentaValidationService
                     $"Periodo inconsistente: El comprobante Serie '{serie}', Número '{numero}' corresponde al periodo '{periodoVenta}', difiere del periodo cargado '{periodo}'",
                     campoError: "periodo",
                     valorLectura: periodoVenta,
-                    severidad: SeveridadError.Warning));
+                    severidad: sevPeriodo));
+            }
+
+            // Validación 4.1: RUC de Empresa
+            var rucVenta = (venta.EmpresaRuc ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(rucVenta) && rucVenta != empresaRuc)
+            {
+                errores.Add(ArchivoCargaError.Crear(
+                    idCarga,
+                    numeroLinea,
+                    TipoErrorCarga.Negocio,
+                    $"RUC inconsistente: El comprobante Serie '{serie}', Número '{numero}' pertenece al RUC '{rucVenta}', difiere de la empresa seleccionada '{empresaRuc}'",
+                    campoError: "ruc",
+                    valorLectura: rucVenta,
+                    severidad: SeveridadError.Advertencia));
             }
 
             // Validación 5: Fecha Máxima de Emisión
             if (fechaEmision.Date > ultimoDiaPeriodo.Date)
             {
                 var periodoFecha = $"{fechaEmision.Year}{fechaEmision.Month:D2}";
+                var esFechaSuperior = string.Compare(periodoFecha, periodo, StringComparison.Ordinal) > 0;
+                var sevFecha = esFechaSuperior ? SeveridadError.Error : SeveridadError.Advertencia;
+
                 errores.Add(ArchivoCargaError.Crear(
                     idCarga,
                     numeroLinea,
@@ -77,7 +97,73 @@ public class VentaValidationService : IVentaValidationService
                     $"Fecha fuera de periodo: El comprobante Serie '{serie}', Número '{numero}' tiene fecha de emisión {fechaEmision:dd/MM/yyyy} correspondiente al periodo '{periodoFecha}' (posterior al cierre {ultimoDiaPeriodo:dd/MM/yyyy})",
                     campoError: "fecha_emision",
                     valorLectura: fechaEmision.ToString("dd/MM/yyyy"),
-                    severidad: SeveridadError.Warning));
+                    severidad: sevFecha));
+            }
+
+            // Validación 6: Documento de Identidad del Cliente (DNI y RUC)
+            var tipoDoc = (venta.CodigoTipoDocIdentidad ?? string.Empty).Trim();
+            var nroDoc = (venta.NroDocIdentidad ?? string.Empty).Trim();
+
+            if (!string.IsNullOrWhiteSpace(tipoDoc) || !string.IsNullOrWhiteSpace(nroDoc))
+            {
+                if (tipoDoc == "1") // DNI: Exactamente 8 dígitos numéricos
+                {
+                    if (nroDoc.Length != 8 || !nroDoc.All(char.IsDigit))
+                    {
+                        errores.Add(ArchivoCargaError.Crear(
+                            idCarga,
+                            numeroLinea,
+                            TipoErrorCarga.Formato,
+                            $"Documento DNI inválido: El comprobante Serie '{serie}', Número '{numero}' tiene el documento '{nroDoc}' que debe contener exactamente 8 dígitos numéricos.",
+                            campoError: "num_doc_identidad",
+                            valorLectura: nroDoc,
+                            severidad: SeveridadError.Advertencia));
+                    }
+                }
+                else if (tipoDoc == "6") // RUC: Exactamente 11 dígitos numéricos que comiencen con 10, 20, 15 o 17
+                {
+                    var rucValido = nroDoc.Length == 11 && nroDoc.All(char.IsDigit);
+                    if (!rucValido)
+                    {
+                        errores.Add(ArchivoCargaError.Crear(
+                            idCarga,
+                            numeroLinea,
+                            TipoErrorCarga.Formato,
+                            $"Documento RUC inválido: El comprobante Serie '{serie}', Número '{numero}' tiene el RUC '{nroDoc}' que debe contener exactamente 11 dígitos numéricos.",
+                            campoError: "num_doc_identidad",
+                            valorLectura: nroDoc,
+                            severidad: SeveridadError.Advertencia));
+                    }
+                    else
+                    {
+                        var prefijo = nroDoc.Substring(0, 2);
+                        if (prefijo != "10" && prefijo != "20" && prefijo != "15" && prefijo != "17")
+                        {
+                            errores.Add(ArchivoCargaError.Crear(
+                                idCarga,
+                                numeroLinea,
+                                TipoErrorCarga.Negocio,
+                                $"Documento RUC con prefijo inválido: El RUC '{nroDoc}' del comprobante Serie '{serie}', Número '{numero}' debe iniciar con 10, 20, 15 o 17.",
+                                campoError: "num_doc_identidad",
+                                valorLectura: nroDoc,
+                                severidad: SeveridadError.Advertencia));
+                        }
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(nroDoc))
+                {
+                    if (nroDoc.Length > 15 || !nroDoc.All(char.IsLetterOrDigit))
+                    {
+                        errores.Add(ArchivoCargaError.Crear(
+                            idCarga,
+                            numeroLinea,
+                            TipoErrorCarga.Formato,
+                            $"Documento inválido: El documento '{nroDoc}' del comprobante Serie '{serie}', Número '{numero}' contiene caracteres no permitidos o excede 15 caracteres.",
+                            campoError: "num_doc_identidad",
+                            valorLectura: nroDoc,
+                            severidad: SeveridadError.Advertencia));
+                    }
+                }
             }
         }
 
@@ -97,7 +183,7 @@ public class VentaValidationService : IVentaValidationService
                 $"Comprobante duplicado: La Serie '{s}', Número '{n}' se encuentra registrada {cant} veces en el archivo",
                 campoError: "serie_numero",
                 valorLectura: $"{s}-{n}",
-                severidad: SeveridadError.Warning));
+                severidad: SeveridadError.Error));
         }
 
         // Validación 2: Correlatividad interna entre comprobantes
@@ -178,7 +264,7 @@ public class VentaValidationService : IVentaValidationService
                         $"Salto de correlatividad: No se encontró el registro para el número correlativo '{faltante}' de la Serie '{grupo.Key.Serie}'",
                         campoError: "numero",
                         valorLectura: faltante.ToString(),
-                        severidad: SeveridadError.Warning));
+                        severidad: SeveridadError.Error));
                 }
                 else if (diferencia > 2)
                 {
@@ -191,7 +277,7 @@ public class VentaValidationService : IVentaValidationService
                         $"Salto múltiple de correlatividad: No se encontraron los registros de los números correlativos desde '{desde}' hasta '{hasta}' de la Serie '{grupo.Key.Serie}'",
                         campoError: "numero",
                         valorLectura: $"{desde}-{hasta}",
-                        severidad: SeveridadError.Warning));
+                        severidad: SeveridadError.Error));
                 }
             }
         }
@@ -264,7 +350,7 @@ public class VentaValidationService : IVentaValidationService
                     $"Discontinuidad con periodo anterior: El número inicial de la Serie '{grupo.Key.Serie}' es '{menorCargado}', pero el último número del periodo anterior ({periodoAnterior}) fue '{mayorAnterior}' (se esperaba '{esperado}')",
                     campoError: "numero",
                     valorLectura: menorCargado.ToString(),
-                    severidad: SeveridadError.Warning));
+                    severidad: SeveridadError.Advertencia));
             }
         }
 

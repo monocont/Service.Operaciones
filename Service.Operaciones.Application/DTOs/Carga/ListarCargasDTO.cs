@@ -13,5 +13,4 @@ public class ListarCargasDTO
     public int NumRegistros { get; set; }
     public int NumRegistrosValidos { get; set; }
     public int NumRegistrosError { get; set; }
-    public int NumObservaciones { get; set; }
 }

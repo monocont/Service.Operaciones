@@ -194,12 +194,16 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                 await _archivoCargaErrorRepo.AgregarRangoAsync(nuevosErrores, cancellationToken);
             }
 
-            // 7. Actualizar conteos de la carga en operaciones.archivo_carga
+            // 7. Actualizar conteos y montos acumulados de la carga en operaciones.archivo_carga
             var totalRestantes = ventasRestantes.Count;
             var totalObservaciones = nuevosErrores.Count;
             var totalValidos = Math.Max(0, totalRestantes - totalObservaciones);
 
-            carga.ActualizarConteo(totalRestantes, totalValidos, totalObservaciones);
+            var totalBiRestantes = ventasRestantes.Sum(v => v.BiGravada);
+            var totalIgvRestantes = ventasRestantes.Sum(v => v.IgvIpm);
+            var totalGenRestantes = ventasRestantes.Sum(v => v.TotalCp);
+
+            carga.ActualizarConteoYMontos(totalRestantes, totalValidos, totalObservaciones, totalBiRestantes, totalIgvRestantes, totalGenRestantes);
             if (!string.IsNullOrWhiteSpace(request.Usuario))
             {
                 carga.ModificadoPor = request.Usuario;

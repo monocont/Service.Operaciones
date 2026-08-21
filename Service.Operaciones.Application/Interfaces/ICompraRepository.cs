@@ -8,4 +8,5 @@ public interface ICompraRepository
     Task<int> ContarPorCargaAsync(Guid idCarga, CancellationToken cancellationToken);
     Task<bool> ExistePorCarSunatAsync(string empresaRuc, string periodo, string carSunat, CancellationToken cancellationToken);
     Task AgregarRangoAsync(List<Compra> compras, CancellationToken cancellationToken);
+    Task EliminarPorCargaFisicoAsync(Guid idCarga, CancellationToken cancellationToken);
 }

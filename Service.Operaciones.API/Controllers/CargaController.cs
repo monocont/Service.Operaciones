@@ -174,6 +174,19 @@ public class CargaController : ControllerBase
         return Ok(resultado);
     }
 
+    /// <summary>
+    /// Elimina físicamente una carga de archivos y todos sus registros asociados (errores, ventas, etc.)
+    /// </summary>
+    [HttpDelete("cargas/{idCarga:guid}")]
+    public async Task<IActionResult> EliminarCarga(
+        [FromRoute] Guid idCarga,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new Service.Operaciones.Application.Commands.Carga.EliminarArchivoCarga.EliminarArchivoCargaCommand(idCarga);
+        var resultado = await _mediator.Send(command, cancellationToken);
+        return Ok(resultado);
+    }
+
     private string ObtenerUsuario()
     {
         return User.Identity?.Name ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "sistema";

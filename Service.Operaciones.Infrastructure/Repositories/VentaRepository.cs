@@ -68,6 +68,13 @@ public class VentaRepository : IVentaRepository
         }
     }
 
+    public async Task EliminarPorCargaFisicoAsync(Guid idCarga, CancellationToken cancellationToken)
+    {
+        await _context.Venta
+            .Where(v => v.IdCarga == idCarga)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
     public async Task<List<Venta>> ObtenerPorIdsAsync(List<Guid> idsVenta, CancellationToken cancellationToken)
     {
         if (idsVenta == null || idsVenta.Count == 0) return new List<Venta>();

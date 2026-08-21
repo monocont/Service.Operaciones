@@ -30,6 +30,9 @@ public class OperacionesDbContext : DbContext
             entity.Property(e => e.NumRegistros).HasColumnName("num_registros").HasDefaultValue(0);
             entity.Property(e => e.NumRegistrosValidos).HasColumnName("num_registros_validos").HasDefaultValue(0);
             entity.Property(e => e.NumRegistrosError).HasColumnName("num_registros_error").HasDefaultValue(0);
+            entity.Property(e => e.TotalBaseImponible).HasColumnName("total_base_imponible").HasColumnType("numeric(14,2)").HasDefaultValue(0);
+            entity.Property(e => e.TotalIgv).HasColumnName("total_igv").HasColumnType("numeric(14,2)").HasDefaultValue(0);
+            entity.Property(e => e.TotalGeneral).HasColumnName("total_general").HasColumnType("numeric(14,2)").HasDefaultValue(0);
             entity.Property(e => e.Estado).HasColumnName("estado").HasConversion<string>().HasMaxLength(12).IsRequired();
             entity.Property(e => e.Observaciones).HasColumnName("observaciones").HasMaxLength(500);
             entity.Property(e => e.CreadoPor).HasColumnName("creado_por").HasMaxLength(150);
@@ -57,7 +60,7 @@ public class OperacionesDbContext : DbContext
             entity.Property(e => e.CampoError).HasColumnName("campo_error").HasMaxLength(50);
             entity.Property(e => e.ValorLectura).HasColumnName("valor_lectura").HasMaxLength(500);
             entity.Property(e => e.Mensaje).HasColumnName("mensaje").HasMaxLength(500).IsRequired();
-            entity.Property(e => e.Severidad).HasColumnName("severidad").HasConversion<string>().HasMaxLength(7).IsRequired();
+            entity.Property(e => e.Severidad).HasColumnName("severidad").HasConversion<string>().HasMaxLength(15).IsRequired();
             entity.Property(e => e.FechaRegistro).HasColumnName("fecha_registro");
 
             entity.HasOne<ArchivoCarga>()

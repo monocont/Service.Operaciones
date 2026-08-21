@@ -12,4 +12,5 @@ public interface IArchivoCargaRepository
     Task<int> ContarAsync(string empresaRuc, TipoArchivo tipoArchivo, CancellationToken cancellationToken);
     Task AgregarAsync(ArchivoCarga archivoCarga, CancellationToken cancellationToken);
     Task ActualizarAsync(ArchivoCarga archivoCarga, CancellationToken cancellationToken);
+    Task EliminarFisicoAsync(Guid idCarga, CancellationToken cancellationToken);
 }

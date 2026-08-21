@@ -44,13 +44,8 @@ public class ArchivoCargaErrorRepository : IArchivoCargaErrorRepository
 
     public async Task EliminarPorCargaAsync(Guid idCarga, CancellationToken cancellationToken)
     {
-        var errores = await _context.ArchivoCargaError
+        await _context.ArchivoCargaError
             .Where(e => e.IdCarga == idCarga)
-            .ToListAsync(cancellationToken);
-
-        if (errores.Count > 0)
-        {
-            _context.ArchivoCargaError.RemoveRange(errores);
-        }
+            .ExecuteDeleteAsync(cancellationToken);
     }
 }
