@@ -27,6 +27,11 @@ public class ErrorHandlingMiddleware
             _logger.LogWarning(ex, "Unauthorized access: {Message}", ex.Message);
             await WriteErrorResponse(context, HttpStatusCode.Unauthorized, ex.Message);
         }
+        catch (UnauthorizedException ex)
+        {
+            _logger.LogWarning(ex, "Forbidden: {Message}", ex.Message);
+            await WriteErrorResponse(context, HttpStatusCode.Forbidden, ex.Message);
+        }
         catch (NotFoundException ex)
         {
             _logger.LogInformation(ex, "Not found: {Message}", ex.Message);

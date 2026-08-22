@@ -1,4 +1,5 @@
 using MediatR;
+using CompraEntidad = Service.Operaciones.Domain.Entities.Compra;
 using Microsoft.Extensions.Logging;
 using Service.Operaciones.Application.Common.Exceptions;
 using Service.Operaciones.Application.DTOs.Carga;
@@ -14,6 +15,7 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
     private readonly IArchivoCargaErrorRepository _archivoCargaErrorRepo;
     private readonly ICompraRepository _compraRepo;
     private readonly IEmpresaService _empresaService;
+    private readonly IAccesoEmpresaValidator _accesoValidator;
     private readonly IHashService _hashService;
     private readonly IArchivoSunatParserFactory _parserFactory;
     private readonly IUnitOfWork _unitOfWork;
@@ -26,6 +28,7 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
         IArchivoCargaErrorRepository archivoCargaErrorRepo,
         ICompraRepository compraRepo,
         IEmpresaService empresaService,
+        IAccesoEmpresaValidator accesoValidator,
         IHashService hashService,
         IArchivoSunatParserFactory parserFactory,
         IUnitOfWork unitOfWork,
@@ -35,6 +38,7 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
         _archivoCargaErrorRepo = archivoCargaErrorRepo;
         _compraRepo = compraRepo;
         _empresaService = empresaService;
+        _accesoValidator = accesoValidator;
         _hashService = hashService;
         _parserFactory = parserFactory;
         _unitOfWork = unitOfWork;
@@ -46,11 +50,13 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
         _logger.LogInformation("Iniciando carga de archivo COMPRAS. Empresa: {EmpresaRuc}, Periodo: {Periodo}",
             request.EmpresaRuc, request.Periodo);
 
-        // 1. Validar empresa
+        // 1. Validar empresa y acceso del usuario (multi-tenant)
         if (!await _empresaService.ExisteEmpresaAsync(request.EmpresaRuc, cancellationToken))
         {
             throw new ValidationException($"La empresa con RUC {request.EmpresaRuc} no esta registrada en el sistema");
         }
+
+        await _accesoValidator.ValidarAccesoAsync(request.EmpresaRuc, cancellationToken);
 
         // 1.1 Validar si ya existe un registro de carga para el mismo periodo, empresa, tipo y usuario
         if (await _archivoCargaRepo.ExisteCargaAsync(request.EmpresaRuc, request.Periodo, Tipo, request.Usuario, cancellationToken))
@@ -117,7 +123,7 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
 
             // 7. Procesar cada linea
             var errores = new List<ArchivoCargaError>();
-            var compras = new List<Compra>();
+            var compras = new List<CompraEntidad>();
             var lineasValidas = new List<Dictionary<string, string>>();
             var carSunatsVistos = new HashSet<string>();
             var validosCount = 0;
@@ -304,9 +310,9 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
         return advertencias;
     }
 
-    private static Compra ConstruirCompra(Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
+    private static CompraEntidad ConstruirCompra(Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
     {
-        return Compra.Crear(
+        return CompraEntidad.Crear(
             empresaRuc: empresaRuc,
             periodo: periodo,
             idCarga: idCarga,

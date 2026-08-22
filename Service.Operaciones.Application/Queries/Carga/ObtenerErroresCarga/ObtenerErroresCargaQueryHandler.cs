@@ -1,4 +1,5 @@
 using MediatR;
+using Service.Operaciones.Application.Common.Exceptions;
 using Service.Operaciones.Application.DTOs.Carga;
 using Service.Operaciones.Application.Interfaces;
 
@@ -7,14 +8,23 @@ namespace Service.Operaciones.Application.Queries.Carga.ObtenerErroresCarga;
 public class ObtenerErroresCargaQueryHandler : IRequestHandler<ObtenerErroresCargaQuery, List<ObtenerErroresCargaDTO>>
 {
     private readonly IArchivoCargaErrorRepository _repositorio;
+    private readonly IArchivoCargaRepository _cargaRepository;
+    private readonly IAccesoEmpresaValidator _accesoValidator;
 
-    public ObtenerErroresCargaQueryHandler(IArchivoCargaErrorRepository repositorio)
+    public ObtenerErroresCargaQueryHandler(IArchivoCargaErrorRepository repositorio, IArchivoCargaRepository cargaRepository, IAccesoEmpresaValidator accesoValidator)
     {
         _repositorio = repositorio;
+        _cargaRepository = cargaRepository;
+        _accesoValidator = accesoValidator;
     }
 
     public async Task<List<ObtenerErroresCargaDTO>> Handle(ObtenerErroresCargaQuery request, CancellationToken cancellationToken)
     {
+        var carga = await _cargaRepository.ObtenerPorIdAsync(request.IdCarga, cancellationToken)
+            ?? throw new NotFoundException("Carga", request.IdCarga);
+
+        await _accesoValidator.ValidarAccesoAsync(carga.EmpresaRuc, cancellationToken);
+
         var errores = await _repositorio.ObtenerPorCargaAsync(request.IdCarga, cancellationToken);
 
         return errores

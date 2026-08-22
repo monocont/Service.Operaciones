@@ -8,6 +8,7 @@ namespace Service.Operaciones.Application.Commands.Carga.EliminarArchivoCarga;
 public class EliminarArchivoCargaCommandHandler : IRequestHandler<EliminarArchivoCargaCommand, bool>
 {
     private readonly IArchivoCargaRepository _archivoCargaRepo;
+    private readonly IAccesoEmpresaValidator _accesoValidator;
     private readonly IArchivoCargaErrorRepository _archivoCargaErrorRepo;
     private readonly IVentaRepository _ventaRepo;
     private readonly IUnitOfWork _unitOfWork;
@@ -15,12 +16,14 @@ public class EliminarArchivoCargaCommandHandler : IRequestHandler<EliminarArchiv
 
     public EliminarArchivoCargaCommandHandler(
         IArchivoCargaRepository archivoCargaRepo,
+        IAccesoEmpresaValidator accesoValidator,
         IArchivoCargaErrorRepository archivoCargaErrorRepo,
         IVentaRepository ventaRepo,
         IUnitOfWork unitOfWork,
         ILogger<EliminarArchivoCargaCommandHandler> logger)
     {
         _archivoCargaRepo = archivoCargaRepo;
+        _accesoValidator = accesoValidator;
         _archivoCargaErrorRepo = archivoCargaErrorRepo;
         _ventaRepo = ventaRepo;
         _unitOfWork = unitOfWork;
@@ -34,6 +37,8 @@ public class EliminarArchivoCargaCommandHandler : IRequestHandler<EliminarArchiv
         {
             throw new NotFoundException($"No se encontró la carga con Id '{request.IdCarga}'.");
         }
+
+        await _accesoValidator.ValidarAccesoAsync(carga.EmpresaRuc, cancellationToken);
 
         // 1. Iniciar transacción en UnitOfWork
         await _unitOfWork.BeginTransactionAsync(cancellationToken);

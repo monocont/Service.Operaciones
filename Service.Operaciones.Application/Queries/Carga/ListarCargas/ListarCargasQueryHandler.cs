@@ -7,14 +7,18 @@ namespace Service.Operaciones.Application.Queries.Carga.ListarCargas;
 public class ListarCargasQueryHandler : IRequestHandler<ListarCargasQuery, List<ListarCargasDTO>>
 {
     private readonly IArchivoCargaRepository _repositorio;
+    private readonly IAccesoEmpresaValidator _accesoValidator;
 
-    public ListarCargasQueryHandler(IArchivoCargaRepository repositorio)
+    public ListarCargasQueryHandler(IArchivoCargaRepository repositorio, IAccesoEmpresaValidator accesoValidator)
     {
         _repositorio = repositorio;
+        _accesoValidator = accesoValidator;
     }
 
     public async Task<List<ListarCargasDTO>> Handle(ListarCargasQuery request, CancellationToken cancellationToken)
     {
+        await _accesoValidator.ValidarAccesoAsync(request.EmpresaRuc, cancellationToken);
+
         var cargas = await _repositorio.ListarAsync(
             request.EmpresaRuc,
             request.TipoArchivo,

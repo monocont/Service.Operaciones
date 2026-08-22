@@ -49,4 +49,22 @@ public class CompraRepository : ICompraRepository
             .Where(c => c.IdCarga == idCarga)
             .ExecuteDeleteAsync(cancellationToken);
     }
+
+    public async Task<List<Compra>> ObtenerPorIdsAsync(List<Guid> idsCompra, CancellationToken cancellationToken)
+    {
+        if (idsCompra == null || idsCompra.Count == 0) return new List<Compra>();
+
+        return await _context.Compra
+            .Where(c => idsCompra.Contains(c.IdCompra))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task EliminarRangoFisicoAsync(List<Guid> idsCompra, CancellationToken cancellationToken)
+    {
+        if (idsCompra == null || idsCompra.Count == 0) return;
+
+        await _context.Compra
+            .Where(c => idsCompra.Contains(c.IdCompra))
+            .ExecuteDeleteAsync(cancellationToken);
+    }
 }

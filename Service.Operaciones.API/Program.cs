@@ -99,8 +99,12 @@ builder.Services.AddScoped<IVentaRepository, VentaRepository>();
 
 // Servicios de Application
 builder.Services.AddScoped<IHashService, HashService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUsuarioActualService, UsuarioActualService>();
+builder.Services.AddScoped<IAccesoEmpresaValidator, AccesoEmpresaValidator>();
 builder.Services.AddScoped<IArchivoSunatParserFactory, ArchivoSunatParserFactory>();
 builder.Services.AddScoped<IVentaValidationService, Service.Operaciones.Application.Services.VentaValidationService>();
+builder.Services.AddScoped<ICompraValidationService, Service.Operaciones.Application.Services.CompraValidationService>();
 
 // HttpClient para Service.Empresa
 var empresaUrl = builder.Configuration.GetSection("ServiceUrls:Empresa").Value ?? "http://localhost:5001";

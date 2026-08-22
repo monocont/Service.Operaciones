@@ -152,4 +152,45 @@ public class Compra : EntidadAuditoria
             CreadoPor = usuarioCreacion
         };
     }
+
+    /// <summary>
+    /// Actualiza los campos editables del comprobante de compra (edición manual en el detalle).
+    /// </summary>
+    public void ActualizarDatos(
+        string codigoTipoCp,
+        string serie,
+        string numero,
+        DateTime fechaEmision,
+        string codigoTipoDocIdentidad,
+        string nroDocIdentidad,
+        string razonSocial,
+        decimal biGravadoDg,
+        decimal igvIpmDg,
+        decimal totalCp,
+        string codigoMoneda,
+        decimal tipoCambio,
+        string codigoEstadoComprobante,
+        string? detraccion,
+        string carSunat,
+        string usuarioModificacion)
+    {
+        CodigoTipoCp = codigoTipoCp;
+        Serie = serie;
+        Numero = numero;
+        FechaEmision = fechaEmision;
+        CodigoTipoDocIdentidad = codigoTipoDocIdentidad;
+        NroDocIdentidad = nroDocIdentidad;
+        RazonSocial = razonSocial;
+        BiGravadoDg = biGravadoDg;
+        IgvIpmDg = igvIpmDg;
+        TotalCp = totalCp;
+        CodigoMoneda = codigoMoneda;
+        TipoCambio = tipoCambio;
+        CodigoEstadoComprobante = codigoEstadoComprobante;
+        Detraccion = detraccion;
+        CarSunat = carSunat;
+
+        ModificadoPor = usuarioModificacion;
+        FechaModificacion = DateTime.UtcNow;
+    }
 }

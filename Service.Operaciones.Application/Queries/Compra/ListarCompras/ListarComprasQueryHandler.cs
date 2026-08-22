@@ -1,4 +1,5 @@
 using MediatR;
+using Service.Operaciones.Application.Common.Exceptions;
 using Service.Operaciones.Application.DTOs.Compra;
 using Service.Operaciones.Application.Interfaces;
 
@@ -7,14 +8,23 @@ namespace Service.Operaciones.Application.Queries.Compra.ListarCompras;
 public class ListarComprasQueryHandler : IRequestHandler<ListarComprasQuery, List<CompraDTO>>
 {
     private readonly ICompraRepository _repositorio;
+    private readonly IArchivoCargaRepository _cargaRepository;
+    private readonly IAccesoEmpresaValidator _accesoValidator;
 
-    public ListarComprasQueryHandler(ICompraRepository repositorio)
+    public ListarComprasQueryHandler(ICompraRepository repositorio, IArchivoCargaRepository cargaRepository, IAccesoEmpresaValidator accesoValidator)
     {
         _repositorio = repositorio;
+        _cargaRepository = cargaRepository;
+        _accesoValidator = accesoValidator;
     }
 
     public async Task<List<CompraDTO>> Handle(ListarComprasQuery request, CancellationToken cancellationToken)
     {
+        var carga = await _cargaRepository.ObtenerPorIdAsync(request.IdCarga, cancellationToken)
+            ?? throw new NotFoundException("Carga", request.IdCarga);
+
+        await _accesoValidator.ValidarAccesoAsync(carga.EmpresaRuc, cancellationToken);
+
         var compras = await _repositorio.ListarPorCargaAsync(
             request.IdCarga, cancellationToken);
 

@@ -3,39 +3,44 @@ using Microsoft.Extensions.Logging;
 using Service.Operaciones.Application.Common.Exceptions;
 using Service.Operaciones.Application.Interfaces;
 
-namespace Service.Operaciones.Application.Commands.Venta.ActualizarVentas;
+namespace Service.Operaciones.Application.Commands.Compra.ActualizarCompras;
 
-public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCommand, ActualizarVentasResponseDTO>
+/// <summary>
+/// Aplica cambios manuales (altas/bajas/modificaciones) sobre los comprobantes
+/// de una carga de compras existente: transaccional, con autorización multi-tenant,
+/// revalidación de observaciones y recálculo de conteos/totales.
+/// </summary>
+public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarComprasCommand, ActualizarComprasResponseDTO>
 {
     private readonly IArchivoCargaRepository _archivoCargaRepo;
-    private readonly IAccesoEmpresaValidator _accesoValidator;
     private readonly IArchivoCargaErrorRepository _archivoCargaErrorRepo;
-    private readonly IVentaRepository _ventaRepo;
-    private readonly IVentaValidationService _ventaValidationService;
+    private readonly ICompraRepository _compraRepo;
+    private readonly ICompraValidationService _compraValidationService;
+    private readonly IAccesoEmpresaValidator _accesoValidator;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<ActualizarVentasCommandHandler> _logger;
+    private readonly ILogger<ActualizarComprasCommandHandler> _logger;
 
-    public ActualizarVentasCommandHandler(
+    public ActualizarComprasCommandHandler(
         IArchivoCargaRepository archivoCargaRepo,
-        IAccesoEmpresaValidator accesoValidator,
         IArchivoCargaErrorRepository archivoCargaErrorRepo,
-        IVentaRepository ventaRepo,
-        IVentaValidationService ventaValidationService,
+        ICompraRepository compraRepo,
+        ICompraValidationService compraValidationService,
+        IAccesoEmpresaValidator accesoValidator,
         IUnitOfWork unitOfWork,
-        ILogger<ActualizarVentasCommandHandler> logger)
+        ILogger<ActualizarComprasCommandHandler> logger)
     {
         _archivoCargaRepo = archivoCargaRepo;
-        _accesoValidator = accesoValidator;
         _archivoCargaErrorRepo = archivoCargaErrorRepo;
-        _ventaRepo = ventaRepo;
-        _ventaValidationService = ventaValidationService;
+        _compraRepo = compraRepo;
+        _compraValidationService = compraValidationService;
+        _accesoValidator = accesoValidator;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
-    public async Task<ActualizarVentasResponseDTO> Handle(ActualizarVentasCommand request, CancellationToken cancellationToken)
+    public async Task<ActualizarComprasResponseDTO> Handle(ActualizarComprasCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Iniciando actualización de ventas para carga {IdCarga}. Eliminados: {Count}",
+        _logger.LogInformation("Iniciando actualización de compras para carga {IdCarga}. Eliminados: {Count}",
             request.IdCarga, request.EliminadosIds?.Count ?? 0);
 
         // 1. Obtener la carga correspondiente
@@ -56,17 +61,16 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
             // 3. Eliminar comprobantes físicamente de la base de datos
             if (request.EliminadosIds != null && request.EliminadosIds.Count > 0)
             {
-                await _ventaRepo.EliminarRangoFisicoAsync(request.EliminadosIds, cancellationToken);
+                await _compraRepo.EliminarRangoFisicoAsync(request.EliminadosIds, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
 
             // 3.1 Agregar nuevos comprobantes validados
             if (request.Nuevos != null && request.Nuevos.Count > 0)
             {
-                var ventasNuevas = new List<Service.Operaciones.Domain.Entities.Venta>();
+                var comprasNuevas = new List<Service.Operaciones.Domain.Entities.Compra>();
                 foreach (var n in request.Nuevos)
                 {
-                    // Validar campos obligatorios: fecha, tipo_cp, serie, numero, tipo_doc_identidad, nro_doc_identidad, razon_social, bi, igv, total
                     if (!n.FechaEmision.HasValue)
                         throw new ValidationException("La fecha de emisión es obligatoria para los nuevos comprobantes.");
                     if (string.IsNullOrWhiteSpace(n.CodigoTipoCp))
@@ -76,11 +80,11 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                     if (string.IsNullOrWhiteSpace(n.Numero))
                         throw new ValidationException("El Número del comprobante es obligatorio.");
                     if (string.IsNullOrWhiteSpace(n.CodigoTipoDocIdentidad))
-                        throw new ValidationException("El Tipo de Documento de Identidad del cliente es obligatorio.");
+                        throw new ValidationException("El Tipo de Documento de Identidad del proveedor es obligatorio.");
                     if (string.IsNullOrWhiteSpace(n.NroDocIdentidad))
-                        throw new ValidationException("El Número de Documento de Identidad del cliente es obligatorio.");
+                        throw new ValidationException("El Número de Documento de Identidad del proveedor es obligatorio.");
                     if (string.IsNullOrWhiteSpace(n.RazonSocial))
-                        throw new ValidationException("La Razón Social o Nombre del cliente es obligatoria.");
+                        throw new ValidationException("La Razón Social o Nombre del proveedor es obligatoria.");
 
                     var moneda = string.IsNullOrWhiteSpace(n.CodigoMoneda) ? "PEN" : n.CodigoMoneda.Trim().ToUpper();
                     var tipoCambio = (n.TipoCambio.HasValue && n.TipoCambio.Value > 0) ? n.TipoCambio.Value : 1.0000m;
@@ -91,7 +95,7 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                         ? n.CarSunat.Trim()
                         : $"{carga.EmpresaRuc}{n.CodigoTipoCp.Trim()}{n.Serie.Trim().PadLeft(4, '0')}{n.Numero.Trim().PadLeft(8, '0')}";
 
-                    var nuevaVenta = Service.Operaciones.Domain.Entities.Venta.Crear(
+                    var nuevaCompra = Service.Operaciones.Domain.Entities.Compra.Crear(
                         empresaRuc: carga.EmpresaRuc,
                         periodo: carga.Periodo,
                         idCarga: carga.IdCarga,
@@ -108,32 +112,31 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                         tipoCambio: tipoCambio,
                         codigoEstadoComprobante: estadoCp,
                         usuarioCreacion: request.Usuario ?? "sistema",
-                        biGravada: n.BiGravada,
-                        igvIpm: n.IgvIpm
-                    );
+                        biGravadoDg: n.BiGravadoDg,
+                        igvIpmDg: n.IgvIpmDg,
+                        detraccion: string.IsNullOrWhiteSpace(n.Detraccion) ? null : n.Detraccion.Trim());
 
-                    ventasNuevas.Add(nuevaVenta);
+                    comprasNuevas.Add(nuevaCompra);
                 }
 
-                await _ventaRepo.AgregarRangoAsync(ventasNuevas, cancellationToken);
+                await _compraRepo.AgregarRangoAsync(comprasNuevas, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
 
             // 3.2 Actualizar comprobantes existentes modificados
             if (request.Modificados != null && request.Modificados.Count > 0)
             {
-                var idsModificados = request.Modificados.Select(m => m.IdVenta).ToList();
-                var ventasExistentes = await _ventaRepo.ObtenerPorIdsAsync(idsModificados, cancellationToken);
-                var dictExistentes = ventasExistentes.ToDictionary(v => v.IdVenta);
+                var idsModificados = request.Modificados.Select(m => m.IdCompra).ToList();
+                var comprasExistentes = await _compraRepo.ObtenerPorIdsAsync(idsModificados, cancellationToken);
+                var dictExistentes = comprasExistentes.ToDictionary(c => c.IdCompra);
 
                 foreach (var m in request.Modificados)
                 {
-                    if (!dictExistentes.TryGetValue(m.IdVenta, out var ventaExistente))
+                    if (!dictExistentes.TryGetValue(m.IdCompra, out var compraExistente))
                     {
                         continue;
                     }
 
-                    // Validar campos obligatorios
                     if (!m.FechaEmision.HasValue)
                         throw new ValidationException($"La fecha de emisión es obligatoria para el comprobante {m.Serie}-{m.Numero}.");
                     if (string.IsNullOrWhiteSpace(m.CodigoTipoCp))
@@ -143,11 +146,11 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                     if (string.IsNullOrWhiteSpace(m.Numero))
                         throw new ValidationException("El Número del comprobante es obligatorio.");
                     if (string.IsNullOrWhiteSpace(m.CodigoTipoDocIdentidad))
-                        throw new ValidationException("El Tipo de Documento de Identidad del cliente es obligatorio.");
+                        throw new ValidationException("El Tipo de Documento de Identidad del proveedor es obligatorio.");
                     if (string.IsNullOrWhiteSpace(m.NroDocIdentidad))
-                        throw new ValidationException("El Número de Documento de Identidad del cliente es obligatorio.");
+                        throw new ValidationException("El Número de Documento de Identidad del proveedor es obligatorio.");
                     if (string.IsNullOrWhiteSpace(m.RazonSocial))
-                        throw new ValidationException("La Razón Social o Nombre del cliente es obligatoria.");
+                        throw new ValidationException("La Razón Social o Nombre del proveedor es obligatoria.");
 
                     var moneda = string.IsNullOrWhiteSpace(m.CodigoMoneda) ? "PEN" : m.CodigoMoneda.Trim().ToUpper();
                     var tipoCambio = (m.TipoCambio.HasValue && m.TipoCambio.Value > 0) ? m.TipoCambio.Value : 1.0000m;
@@ -158,7 +161,7 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                         ? m.CarSunat.Trim()
                         : $"{carga.EmpresaRuc}{m.CodigoTipoCp.Trim()}{m.Serie.Trim().PadLeft(4, '0')}{m.Numero.Trim().PadLeft(8, '0')}";
 
-                    ventaExistente.ActualizarDatos(
+                    compraExistente.ActualizarDatos(
                         codigoTipoCp: m.CodigoTipoCp.Trim(),
                         serie: m.Serie.Trim().ToUpper(),
                         numero: m.Numero.Trim(),
@@ -166,29 +169,29 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                         codigoTipoDocIdentidad: m.CodigoTipoDocIdentidad.Trim(),
                         nroDocIdentidad: m.NroDocIdentidad.Trim(),
                         razonSocial: m.RazonSocial.Trim().ToUpper(),
-                        biGravada: m.BiGravada,
-                        igvIpm: m.IgvIpm,
+                        biGravadoDg: m.BiGravadoDg,
+                        igvIpmDg: m.IgvIpmDg,
                         totalCp: m.TotalCp,
                         codigoMoneda: moneda,
                         tipoCambio: tipoCambio,
                         codigoEstadoComprobante: estadoCp,
+                        detraccion: string.IsNullOrWhiteSpace(m.Detraccion) ? null : m.Detraccion.Trim(),
                         carSunat: carSunat,
-                        usuarioModificacion: request.Usuario ?? "sistema"
-                    );
+                        usuarioModificacion: request.Usuario ?? "sistema");
                 }
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
 
-            // 4. Obtener los comprobantes restantes de la carga (incluye los recién agregados, modificados y excluye los eliminados)
-            var ventasRestantes = await _ventaRepo.ListarPorCargaAsync(request.IdCarga, cancellationToken);
+            // 4. Obtener los comprobantes restantes de la carga
+            var comprasRestantes = await _compraRepo.ListarPorCargaAsync(request.IdCarga, cancellationToken);
 
-            // 5. Re-validar los comprobantes restantes con el servicio reutilizable
-            var nuevosErrores = await _ventaValidationService.ValidarVentasAsync(
+            // 5. Re-validar los comprobantes restantes
+            var nuevosErrores = await _compraValidationService.ValidarComprasAsync(
                 request.IdCarga,
                 carga.EmpresaRuc,
                 carga.Periodo,
-                ventasRestantes,
+                comprasRestantes,
                 cancellationToken);
 
             // 6. Eliminar observaciones anteriores de la carga y registrar las nuevas
@@ -200,14 +203,14 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                 await _archivoCargaErrorRepo.AgregarRangoAsync(nuevosErrores, cancellationToken);
             }
 
-            // 7. Actualizar conteos y montos acumulados de la carga en operaciones.archivo_carga
-            var totalRestantes = ventasRestantes.Count;
+            // 7. Actualizar conteos y montos acumulados de la carga
+            var totalRestantes = comprasRestantes.Count;
             var totalObservaciones = nuevosErrores.Count;
             var totalValidos = Math.Max(0, totalRestantes - totalObservaciones);
 
-            var totalBiRestantes = ventasRestantes.Sum(v => v.BiGravada);
-            var totalIgvRestantes = ventasRestantes.Sum(v => v.IgvIpm);
-            var totalGenRestantes = ventasRestantes.Sum(v => v.TotalCp);
+            var totalBiRestantes = comprasRestantes.Sum(c => c.BiGravadoDg);
+            var totalIgvRestantes = comprasRestantes.Sum(c => c.IgvIpmDg);
+            var totalGenRestantes = comprasRestantes.Sum(c => c.TotalCp);
 
             carga.ActualizarConteoYMontos(totalRestantes, totalValidos, totalObservaciones, totalBiRestantes, totalIgvRestantes, totalGenRestantes);
             if (!string.IsNullOrWhiteSpace(request.Usuario))
@@ -220,20 +223,20 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
             // 8. Commit transacción en UnitOfWork
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-            _logger.LogInformation("Actualización de ventas para carga {IdCarga} completada exitosamente. Restantes: {Count}, Nuevas Observaciones: {Obs}",
-                request.IdCarga, ventasRestantes.Count, nuevosErrores.Count);
+            _logger.LogInformation("Actualización de compras para carga {IdCarga} completada. Restantes: {Count}, Observaciones: {Obs}",
+                request.IdCarga, comprasRestantes.Count, nuevosErrores.Count);
 
-            return new ActualizarVentasResponseDTO
+            return new ActualizarComprasResponseDTO
             {
                 Exito = true,
                 Mensaje = "Registros actualizados y comprobantes revalidados correctamente.",
-                NumRegistros = ventasRestantes.Count,
+                NumRegistros = comprasRestantes.Count,
                 NumObservaciones = nuevosErrores.Count
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al actualizar ventas de carga {IdCarga}. Ejecutando Rollback.", request.IdCarga);
+            _logger.LogError(ex, "Error al actualizar compras de carga {IdCarga}. Ejecutando Rollback.", request.IdCarga);
             await _unitOfWork.RollbackTransactionAsync(cancellationToken);
             throw;
         }

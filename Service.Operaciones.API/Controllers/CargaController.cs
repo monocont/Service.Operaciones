@@ -174,6 +174,25 @@ public class CargaController : ControllerBase
         return Ok(resultado);
     }
 
+    [HttpPost("cargas/{idCarga:guid}/actualizar-compras")]
+    public async Task<IActionResult> ActualizarCompras(
+        [FromRoute] Guid idCarga,
+        [FromBody] ActualizarComprasRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new Service.Operaciones.Application.Commands.Compra.ActualizarCompras.ActualizarComprasCommand
+        {
+            IdCarga = idCarga,
+            EliminadosIds = request?.EliminadosIds ?? new List<Guid>(),
+            Nuevos = request?.Nuevos ?? new List<Service.Operaciones.Application.Commands.Compra.ActualizarCompras.CrearCompraRegistroDTO>(),
+            Modificados = request?.Modificados ?? new List<Service.Operaciones.Application.Commands.Compra.ActualizarCompras.ModificarCompraRegistroDTO>(),
+            Usuario = ObtenerUsuario()
+        };
+
+        var resultado = await _mediator.Send(command, cancellationToken);
+        return Ok(resultado);
+    }
+
     /// <summary>
     /// Elimina físicamente una carga de archivos y todos sus registros asociados (errores, ventas, etc.)
     /// </summary>
@@ -229,4 +248,11 @@ public class ActualizarVentasRequest
     public List<Guid> EliminadosIds { get; set; } = new();
     public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentas.CrearVentaRegistroDTO> Nuevos { get; set; } = new();
     public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentas.ModificarVentaRegistroDTO> Modificados { get; set; } = new();
+}
+
+public class ActualizarComprasRequest
+{
+    public List<Guid> EliminadosIds { get; set; } = new();
+    public List<Service.Operaciones.Application.Commands.Compra.ActualizarCompras.CrearCompraRegistroDTO> Nuevos { get; set; } = new();
+    public List<Service.Operaciones.Application.Commands.Compra.ActualizarCompras.ModificarCompraRegistroDTO> Modificados { get; set; } = new();
 }

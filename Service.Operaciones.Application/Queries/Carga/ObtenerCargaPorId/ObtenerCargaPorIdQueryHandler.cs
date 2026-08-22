@@ -8,16 +8,20 @@ namespace Service.Operaciones.Application.Queries.Carga.ObtenerCargaPorId;
 public class ObtenerCargaPorIdQueryHandler : IRequestHandler<ObtenerCargaPorIdQuery, ObtenerCargaPorIdDTO>
 {
     private readonly IArchivoCargaRepository _repositorio;
+    private readonly IAccesoEmpresaValidator _accesoValidator;
 
-    public ObtenerCargaPorIdQueryHandler(IArchivoCargaRepository repositorio)
+    public ObtenerCargaPorIdQueryHandler(IArchivoCargaRepository repositorio, IAccesoEmpresaValidator accesoValidator)
     {
         _repositorio = repositorio;
+        _accesoValidator = accesoValidator;
     }
 
     public async Task<ObtenerCargaPorIdDTO> Handle(ObtenerCargaPorIdQuery request, CancellationToken cancellationToken)
     {
         var carga = await _repositorio.ObtenerPorIdAsync(request.IdCarga, cancellationToken)
             ?? throw new NotFoundException("Carga", request.IdCarga);
+
+        await _accesoValidator.ValidarAccesoAsync(carga.EmpresaRuc, cancellationToken);
 
         return new ObtenerCargaPorIdDTO
         {

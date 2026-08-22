@@ -15,6 +15,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
     private readonly IArchivoCargaErrorRepository _archivoCargaErrorRepo;
     private readonly IVentaRepository _ventaRepo;
     private readonly IEmpresaService _empresaService;
+    private readonly IAccesoEmpresaValidator _accesoValidator;
     private readonly IHashService _hashService;
     private readonly IArchivoSunatParserFactory _parserFactory;
     private readonly IVentaValidationService _ventaValidationService;
@@ -28,6 +29,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
         IArchivoCargaErrorRepository archivoCargaErrorRepo,
         IVentaRepository ventaRepo,
         IEmpresaService empresaService,
+        IAccesoEmpresaValidator accesoValidator,
         IHashService hashService,
         IArchivoSunatParserFactory parserFactory,
         IVentaValidationService ventaValidationService,
@@ -38,6 +40,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
         _archivoCargaErrorRepo = archivoCargaErrorRepo;
         _ventaRepo = ventaRepo;
         _empresaService = empresaService;
+        _accesoValidator = accesoValidator;
         _hashService = hashService;
         _parserFactory = parserFactory;
         _ventaValidationService = ventaValidationService;
@@ -50,11 +53,13 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
         _logger.LogInformation("Iniciando carga de archivo VENTAS. Empresa: {EmpresaRuc}, Periodo: {Periodo}",
             request.EmpresaRuc, request.Periodo);
 
-        // 1. Validar empresa
+        // 1. Validar empresa y acceso del usuario (multi-tenant)
         if (!await _empresaService.ExisteEmpresaAsync(request.EmpresaRuc, cancellationToken))
         {
             throw new ValidationException($"La empresa con RUC {request.EmpresaRuc} no esta registrada en el sistema");
         }
+
+        await _accesoValidator.ValidarAccesoAsync(request.EmpresaRuc, cancellationToken);
 
         // 1.1 Validar si ya existe un registro de carga para el mismo periodo, empresa, tipo y usuario
         if (await _archivoCargaRepo.ExisteCargaAsync(request.EmpresaRuc, request.Periodo, Tipo, request.Usuario, cancellationToken))
