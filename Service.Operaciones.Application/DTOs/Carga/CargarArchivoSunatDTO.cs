@@ -7,7 +7,7 @@ public class CargarArchivoSunatDTO
     public Guid IdCarga { get; set; }
     public string EmpresaRuc { get; set; } = string.Empty;
     public string Periodo { get; set; } = string.Empty;
-    public TipoArchivo TipoArchivo { get; set; }
+    public TipoOperacion TipoOperacion { get; set; }
     public FormatoArchivo Formato { get; set; }
     public string NombreOriginal { get; set; } = string.Empty;
     public EstadoCarga Estado { get; set; }

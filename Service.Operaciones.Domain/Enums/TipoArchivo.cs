@@ -3,5 +3,7 @@ namespace Service.Operaciones.Domain.Enums;
 public enum TipoArchivo
 {
     Compras,
-    Ventas
+    Ventas,
+    VentasEmpresa,
+    ComprasEmpresa
 }

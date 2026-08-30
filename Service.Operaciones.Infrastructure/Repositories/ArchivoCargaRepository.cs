@@ -19,36 +19,37 @@ public class ArchivoCargaRepository : IArchivoCargaRepository
         return _context.ArchivoCarga.FirstOrDefaultAsync(a => a.IdCarga == idCarga, cancellationToken);
     }
 
-    public Task<ArchivoCarga?> ObtenerDuplicadoAsync(
-        string empresaRuc, string periodo, TipoArchivo tipoArchivo, string hashDocumento, CancellationToken cancellationToken)
+    public async Task<ArchivoCarga?> ObtenerDuplicadoAsync(
+        string empresaRuc, string periodo, TipoOperacion tipoOperacion, string hashDocumento, CancellationToken cancellationToken)
     {
-        return _context.ArchivoCarga.FirstOrDefaultAsync(
-            a => a.EmpresaRuc == empresaRuc
-              && a.Periodo == periodo
-              && a.TipoArchivo == tipoArchivo
-              && a.HashDocumento == hashDocumento,
-            cancellationToken);
+        return await _context.ArchivoCarga
+            .FirstOrDefaultAsync(a =>
+                a.EmpresaRuc == empresaRuc
+                && a.Periodo == periodo
+                && a.IdTipoOperacion == tipoOperacion
+                && a.HashDocumento == hashDocumento
+                && a.Activo, cancellationToken);
     }
 
-    public Task<bool> ExisteCargaAsync(
-        string empresaRuc, string periodo, TipoArchivo tipoArchivo, string creadoPor, CancellationToken cancellationToken)
+    public async Task<bool> ExisteCargaAsync(
+        string empresaRuc, string periodo, TipoOperacion tipoOperacion, string creadoPor, CancellationToken cancellationToken)
     {
-        return _context.ArchivoCarga.AnyAsync(
-            a => a.EmpresaRuc == empresaRuc
-              && a.Periodo == periodo
-              && a.TipoArchivo == tipoArchivo
-              && a.CreadoPor == creadoPor
-              && a.Activo,
-            cancellationToken);
+        return await _context.ArchivoCarga
+            .AnyAsync(a =>
+                a.EmpresaRuc == empresaRuc
+                && a.Periodo == periodo
+                && a.IdTipoOperacion == tipoOperacion
+                && a.CreadoPor == creadoPor
+                && a.Activo, cancellationToken);
     }
 
     public async Task<List<ArchivoCarga>> ListarAsync(
-        string empresaRuc, TipoArchivo tipoArchivo, string? periodo,
+        string empresaRuc, TipoOperacion tipoOperacion, string? periodo,
         int pageNumber, int pageSize, CancellationToken cancellationToken)
     {
         var query = _context.ArchivoCarga
             .AsNoTracking()
-            .Where(a => a.EmpresaRuc == empresaRuc && a.TipoArchivo == tipoArchivo && a.Activo);
+            .Where(a => a.EmpresaRuc == empresaRuc && a.IdTipoOperacion == tipoOperacion && a.Activo);
 
         if (!string.IsNullOrWhiteSpace(periodo))
         {
@@ -56,19 +57,17 @@ public class ArchivoCargaRepository : IArchivoCargaRepository
         }
 
         return await query
-            .OrderByDescending(a => a.Periodo)
-            .ThenByDescending(a => a.FechaCreacion)
+            .OrderByDescending(a => a.FechaCreacion)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<int> ContarAsync(
-        string empresaRuc, TipoArchivo tipoArchivo, CancellationToken cancellationToken)
+        string empresaRuc, TipoOperacion tipoOperacion, CancellationToken cancellationToken)
     {
         return await _context.ArchivoCarga
-            .AsNoTracking()
-            .Where(a => a.EmpresaRuc == empresaRuc && a.TipoArchivo == tipoArchivo && a.Activo)
+            .Where(a => a.EmpresaRuc == empresaRuc && a.IdTipoOperacion == tipoOperacion && a.Activo)
             .CountAsync(cancellationToken);
     }
 

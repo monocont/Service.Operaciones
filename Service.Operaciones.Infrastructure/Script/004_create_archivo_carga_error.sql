@@ -1,5 +1,5 @@
 -- ============================================================================
--- Service.Operaciones - 003 - Tabla archivo_carga_error
+-- Service.Operaciones - 004 - Tabla archivo_carga_error
 -- Registro de errores por línea durante el procesamiento del archivo
 -- ============================================================================
 

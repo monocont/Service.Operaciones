@@ -21,7 +21,7 @@ public class ListarCargasQueryHandler : IRequestHandler<ListarCargasQuery, List<
 
         var cargas = await _repositorio.ListarAsync(
             request.EmpresaRuc,
-            request.TipoArchivo,
+            request.TipoOperacion,
             request.Periodo,
             request.PageNumber,
             request.PageSize,

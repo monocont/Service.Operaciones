@@ -5,16 +5,34 @@ namespace Service.Operaciones.Infrastructure.Database;
 
 public class OperacionesDbContext : DbContext
 {
+    public DbSet<TipoOperacionCatalogo> TipoOperacion => Set<TipoOperacionCatalogo>();
     public DbSet<ArchivoCarga> ArchivoCarga => Set<ArchivoCarga>();
     public DbSet<ArchivoCargaError> ArchivoCargaError => Set<ArchivoCargaError>();
     public DbSet<Compra> Compra => Set<Compra>();
     public DbSet<Venta> Venta => Set<Venta>();
+    public DbSet<VentaEmpresa> VentaEmpresa => Set<VentaEmpresa>();
 
     public OperacionesDbContext(DbContextOptions<OperacionesDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("operaciones");
+
+        modelBuilder.Entity<TipoOperacionCatalogo>(entity =>
+        {
+            entity.ToTable("tipo_operacion");
+            entity.HasKey(e => e.IdTipoOperacion);
+            entity.Property(e => e.IdTipoOperacion).HasColumnName("id_tipo_operacion").ValueGeneratedNever();
+            entity.Property(e => e.Codigo).HasColumnName("codigo").HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Nombre).HasColumnName("nombre").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Modulo).HasColumnName("modulo").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Descripcion).HasColumnName("descripcion").HasMaxLength(250);
+            entity.Property(e => e.CreadoPor).HasColumnName("creado_por").HasMaxLength(150);
+            entity.Property(e => e.FechaCreacion).HasColumnName("fecha_creacion");
+            entity.Property(e => e.ModificadoPor).HasColumnName("modificado_por").HasMaxLength(150);
+            entity.Property(e => e.FechaModificacion).HasColumnName("fecha_modificacion");
+            entity.Property(e => e.Activo).HasColumnName("activo").HasDefaultValue(true);
+        });
 
         modelBuilder.Entity<ArchivoCarga>(entity =>
         {
@@ -23,7 +41,7 @@ public class OperacionesDbContext : DbContext
             entity.Property(e => e.IdCarga).HasColumnName("id_carga").HasColumnType("uuid");
             entity.Property(e => e.EmpresaRuc).HasColumnName("empresa_ruc").HasMaxLength(11).IsRequired();
             entity.Property(e => e.Periodo).HasColumnName("periodo").HasMaxLength(6).IsRequired();
-            entity.Property(e => e.TipoArchivo).HasColumnName("tipo_archivo").HasConversion<string>().HasMaxLength(10).IsRequired();
+            entity.Property(e => e.IdTipoOperacion).HasColumnName("id_tipo_operacion").HasConversion<int>().IsRequired();
             entity.Property(e => e.Formato).HasColumnName("formato").HasConversion<string>().HasMaxLength(4).IsRequired();
             entity.Property(e => e.NombreOriginal).HasColumnName("nombre_original").HasMaxLength(255).IsRequired();
             entity.Property(e => e.HashDocumento).HasColumnName("hash_documento").HasMaxLength(64).IsRequired();
@@ -42,10 +60,10 @@ public class OperacionesDbContext : DbContext
             entity.Property(e => e.Activo).HasColumnName("activo").HasDefaultValue(true);
             entity.HasQueryFilter(e => e.Activo);
 
-            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.TipoArchivo, e.HashDocumento })
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.IdTipoOperacion, e.HashDocumento })
                 .IsUnique()
                 .HasDatabaseName("uq_ac_hash");
-            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.TipoArchivo })
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.IdTipoOperacion })
                 .HasDatabaseName("idx_ac_empresa_periodo");
         });
 
@@ -134,7 +152,7 @@ public class OperacionesDbContext : DbContext
 
         modelBuilder.Entity<Venta>(entity =>
         {
-            entity.ToTable("venta");
+            entity.ToTable("venta_sire");
             entity.HasKey(e => e.IdVenta);
             entity.Property(e => e.IdVenta).HasColumnName("id_venta").HasColumnType("uuid");
             entity.Property(e => e.IdCarga).HasColumnName("id_carga").HasColumnType("uuid");
@@ -188,6 +206,37 @@ public class OperacionesDbContext : DbContext
                 .HasDatabaseName("idx_venta_car_sunat");
             entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_venta_carga");
             entity.HasIndex(e => new { e.Serie, e.Numero }).HasDatabaseName("idx_venta_serie_num");
+        });
+
+        modelBuilder.Entity<VentaEmpresa>(entity =>
+        {
+            entity.ToTable("venta_empresa");
+            entity.HasKey(e => e.IdVentaEmpresa);
+            entity.Property(e => e.IdVentaEmpresa).HasColumnName("id_venta_empresa").HasColumnType("uuid");
+            entity.Property(e => e.IdCarga).HasColumnName("id_carga").HasColumnType("uuid");
+            entity.Property(e => e.EmpresaRuc).HasColumnName("empresa_ruc").HasMaxLength(11).IsRequired();
+            entity.Property(e => e.Periodo).HasColumnName("periodo").HasMaxLength(6).IsRequired();
+            entity.Property(e => e.NumeroLinea).HasColumnName("numero_linea").IsRequired();
+            entity.Property(e => e.FechaEmision).HasColumnName("fecha_emision").HasColumnType("date").IsRequired();
+            entity.Property(e => e.CodigoTipoCp).HasColumnName("codigo_tipo_cp").HasMaxLength(2).IsRequired();
+            entity.Property(e => e.Serie).HasColumnName("serie").HasMaxLength(10).IsRequired();
+            entity.Property(e => e.Numero).HasColumnName("numero").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.CodigoTipoDocIdentidad).HasColumnName("codigo_tipo_doc_identidad").HasMaxLength(2).IsRequired();
+            entity.Property(e => e.NroDocIdentidad).HasColumnName("nro_doc_identidad").HasMaxLength(15).IsRequired();
+            entity.Property(e => e.TotalCp).HasColumnName("total_comprobante").HasColumnType("numeric(14,2)").IsRequired();
+            entity.Property(e => e.CodigoMoneda).HasColumnName("codigo_moneda").HasMaxLength(3).IsRequired();
+            entity.Property(e => e.TipoCambio).HasColumnName("tipo_cambio").HasColumnType("numeric(10,4)").HasDefaultValue(1.0000m);
+            entity.Property(e => e.CreadoPor).HasColumnName("creado_por").HasMaxLength(150);
+            entity.Property(e => e.FechaCreacion).HasColumnName("fecha_creacion");
+            entity.Property(e => e.ModificadoPor).HasColumnName("modificado_por").HasMaxLength(150);
+            entity.Property(e => e.FechaModificacion).HasColumnName("fecha_modificacion");
+            entity.Property(e => e.Activo).HasColumnName("activo").HasDefaultValue(true);
+            entity.HasQueryFilter(e => e.Activo);
+
+            entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_ve_carga");
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.FechaEmision }).HasDatabaseName("idx_ve_empresa_periodo");
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.CodigoTipoCp, e.Serie, e.Numero }).HasDatabaseName("idx_ve_cruce_match");
+            entity.HasIndex(e => new { e.NroDocIdentidad, e.FechaEmision }).HasDatabaseName("idx_ve_cliente");
         });
     }
 }

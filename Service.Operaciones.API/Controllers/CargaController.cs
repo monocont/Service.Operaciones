@@ -62,21 +62,67 @@ public class CargaController : ControllerBase
     [HttpGet("cargas")]
     public async Task<IActionResult> ListarCargas(
         [FromQuery] string empresaRuc,
-        [FromQuery] string tipoArchivo,
+        [FromQuery] string? tipoArchivo,
+        [FromQuery] string? tipoOperacion,
+        [FromQuery] int? idTipoOperacion,
         [FromQuery] string? periodo,
-        [FromQuery] int pageNumber,
-        [FromQuery] int pageSize,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(tipoArchivo) || !Enum.TryParse<TipoArchivo>(tipoArchivo, ignoreCase: true, out var tipoArchivoEnum))
+        TipoOperacion tipoOpEnum;
+
+        if (idTipoOperacion.HasValue && Enum.IsDefined(typeof(TipoOperacion), idTipoOperacion.Value))
         {
-            return BadRequest(new { success = false, message = "El parámetro tipoArchivo es obligatorio y debe ser 'Ventas' o 'Compras'." });
+            tipoOpEnum = (TipoOperacion)idTipoOperacion.Value;
+        }
+        else
+        {
+            var opStr = tipoOperacion ?? tipoArchivo;
+            if (string.IsNullOrWhiteSpace(opStr))
+            {
+                return BadRequest(new { success = false, message = "El parámetro tipoOperacion o idTipoOperacion es obligatorio." });
+            }
+
+            // Normalización para compatibilidad con nombres y códigos
+            if (int.TryParse(opStr, out var opInt) && Enum.IsDefined(typeof(TipoOperacion), opInt))
+            {
+                tipoOpEnum = (TipoOperacion)opInt;
+            }
+            else if (string.Equals(opStr, "Ventas", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(opStr, "VentaSire", StringComparison.OrdinalIgnoreCase))
+            {
+                tipoOpEnum = TipoOperacion.VentaSire;
+            }
+            else if (string.Equals(opStr, "VentasEmpresa", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(opStr, "VentaEmpresa", StringComparison.OrdinalIgnoreCase))
+            {
+                tipoOpEnum = TipoOperacion.VentaEmpresa;
+            }
+            else if (string.Equals(opStr, "Compras", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(opStr, "CompraSire", StringComparison.OrdinalIgnoreCase))
+            {
+                tipoOpEnum = TipoOperacion.CompraSire;
+            }
+            else if (string.Equals(opStr, "ComprasEmpresa", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(opStr, "CompraEmpresa", StringComparison.OrdinalIgnoreCase))
+            {
+                tipoOpEnum = TipoOperacion.CompraEmpresa;
+            }
+            else if (Enum.TryParse<TipoOperacion>(opStr, ignoreCase: true, out var parsedEnum))
+            {
+                tipoOpEnum = parsedEnum;
+            }
+            else
+            {
+                return BadRequest(new { success = false, message = "El tipo de operación especificado no es válido." });
+            }
         }
 
         var query = new ListarCargasQuery
         {
             EmpresaRuc = empresaRuc,
-            TipoArchivo = tipoArchivoEnum,
+            TipoOperacion = tipoOpEnum,
             Periodo = periodo,
             PageNumber = pageNumber,
             PageSize = pageSize
@@ -149,6 +195,67 @@ public class CargaController : ControllerBase
         };
 
         var resultado = await _mediator.Send(query, cancellationToken);
+        return Ok(resultado);
+    }
+
+    /// <summary>
+    /// Carga un archivo de VENTAS DE EMPRESA en formato .xlsx, .xls o .csv
+    /// </summary>
+    [HttpPost("cargas/ventas-empresa")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(60 * 1024 * 1024)]
+    public async Task<IActionResult> CargarArchivoVentasEmpresa(
+        [FromForm] CargarArchivoRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new Service.Operaciones.Application.Commands.Carga.CargarArchivoVentasEmpresa.CargarArchivoVentasEmpresaCommand
+        {
+            ArchivoStream = request.Archivo.OpenReadStream(),
+            NombreArchivo = request.Archivo.FileName,
+            EmpresaRuc = request.EmpresaRuc,
+            Periodo = request.Periodo,
+            Usuario = ObtenerUsuario()
+        };
+        var resultado = await _mediator.Send(command, cancellationToken);
+        return Ok(resultado);
+    }
+
+    /// <summary>
+    /// Lista todas las ventas de empresa asociadas a una carga sin paginación
+    /// </summary>
+    [HttpGet("cargas/{idCarga:guid}/ventas-empresa")]
+    public async Task<IActionResult> ListarVentasEmpresa(
+        [FromRoute] Guid idCarga,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new Service.Operaciones.Application.Queries.Venta.ListarVentasEmpresa.ListarVentasEmpresaQuery
+        {
+            IdCarga = idCarga
+        };
+
+        var resultado = await _mediator.Send(query, cancellationToken);
+        return Ok(resultado);
+    }
+
+    /// <summary>
+    /// Actualiza y sincroniza los comprobantes de ventas de la empresa de una carga y revalida observaciones
+    /// </summary>
+    [HttpPost("cargas/{idCarga:guid}/actualizar-ventas-empresa")]
+    public async Task<IActionResult> ActualizarVentasEmpresa(
+        [FromRoute] Guid idCarga,
+        [FromBody] ActualizarVentasEmpresaRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new Service.Operaciones.Application.Commands.Venta.ActualizarVentasEmpresa.ActualizarVentasEmpresaCommand
+        {
+            IdCarga = idCarga,
+            EliminadosIds = request?.EliminadosIds ?? new List<Guid>(),
+            Nuevos = request?.Nuevos ?? new List<Service.Operaciones.Application.Commands.Venta.ActualizarVentasEmpresa.CrearVentaEmpresaRegistroDTO>(),
+            Modificados = request?.Modificados ?? new List<Service.Operaciones.Application.Commands.Venta.ActualizarVentasEmpresa.ModificarVentaEmpresaRegistroDTO>(),
+            Usuario = ObtenerUsuario()
+        };
+
+        var resultado = await _mediator.Send(command, cancellationToken);
         return Ok(resultado);
     }
 
@@ -248,6 +355,13 @@ public class ActualizarVentasRequest
     public List<Guid> EliminadosIds { get; set; } = new();
     public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentas.CrearVentaRegistroDTO> Nuevos { get; set; } = new();
     public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentas.ModificarVentaRegistroDTO> Modificados { get; set; } = new();
+}
+
+public class ActualizarVentasEmpresaRequest
+{
+    public List<Guid> EliminadosIds { get; set; } = new();
+    public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentasEmpresa.CrearVentaEmpresaRegistroDTO> Nuevos { get; set; } = new();
+    public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentasEmpresa.ModificarVentaEmpresaRegistroDTO> Modificados { get; set; } = new();
 }
 
 public class ActualizarComprasRequest

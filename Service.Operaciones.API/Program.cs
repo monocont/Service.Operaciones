@@ -96,6 +96,7 @@ builder.Services.AddScoped<IArchivoCargaRepository, ArchivoCargaRepository>();
 builder.Services.AddScoped<IArchivoCargaErrorRepository, ArchivoCargaErrorRepository>();
 builder.Services.AddScoped<ICompraRepository, CompraRepository>();
 builder.Services.AddScoped<IVentaRepository, VentaRepository>();
+builder.Services.AddScoped<IVentaEmpresaRepository, VentaEmpresaRepository>();
 
 // Servicios de Application
 builder.Services.AddScoped<IHashService, HashService>();
@@ -105,6 +106,8 @@ builder.Services.AddScoped<IAccesoEmpresaValidator, AccesoEmpresaValidator>();
 builder.Services.AddScoped<IArchivoSunatParserFactory, ArchivoSunatParserFactory>();
 builder.Services.AddScoped<IVentaValidationService, Service.Operaciones.Application.Services.VentaValidationService>();
 builder.Services.AddScoped<ICompraValidationService, Service.Operaciones.Application.Services.CompraValidationService>();
+builder.Services.AddScoped<IVentaEmpresaParser, VentaEmpresaExcelParser>();
+builder.Services.AddScoped<IVentaEmpresaValidationService, Service.Operaciones.Application.Services.VentaEmpresaValidationService>();
 
 // HttpClient para Service.Empresa
 var empresaUrl = builder.Configuration.GetSection("ServiceUrls:Empresa").Value ?? "http://localhost:5001";

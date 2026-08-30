@@ -7,7 +7,7 @@ public class ArchivoCarga : EntidadAuditoria
     public Guid IdCarga { get; private set; }
     public string EmpresaRuc { get; private set; } = string.Empty;
     public string Periodo { get; private set; } = string.Empty;
-    public TipoArchivo TipoArchivo { get; private set; }
+    public TipoOperacion IdTipoOperacion { get; private set; }
     public FormatoArchivo Formato { get; private set; }
     public string NombreOriginal { get; private set; } = string.Empty;
     public string HashDocumento { get; private set; } = string.Empty;
@@ -25,7 +25,7 @@ public class ArchivoCarga : EntidadAuditoria
     public static ArchivoCarga Crear(
         string empresaRuc,
         string periodo,
-        TipoArchivo tipoArchivo,
+        TipoOperacion tipoOperacion,
         FormatoArchivo formato,
         string nombreOriginal,
         string hashDocumento,
@@ -36,7 +36,7 @@ public class ArchivoCarga : EntidadAuditoria
             IdCarga = Guid.NewGuid(),
             EmpresaRuc = empresaRuc,
             Periodo = periodo,
-            TipoArchivo = tipoArchivo,
+            IdTipoOperacion = tipoOperacion,
             Formato = formato,
             NombreOriginal = nombreOriginal,
             HashDocumento = hashDocumento,

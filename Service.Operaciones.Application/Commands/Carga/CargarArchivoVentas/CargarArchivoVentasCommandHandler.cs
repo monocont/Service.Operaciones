@@ -22,7 +22,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CargarArchivoVentasCommandHandler> _logger;
 
-    private const TipoArchivo Tipo = TipoArchivo.Ventas;
+    private const TipoOperacion Tipo = TipoOperacion.VentaSire;
 
     public CargarArchivoVentasCommandHandler(
         IArchivoCargaRepository archivoCargaRepo,
@@ -88,7 +88,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
                 IdCarga = duplicado.IdCarga,
                 EmpresaRuc = request.EmpresaRuc,
                 Periodo = request.Periodo,
-                TipoArchivo = Tipo,
+                TipoOperacion = Tipo,
                 Formato = formato,
                 NombreOriginal = request.NombreArchivo,
                 Estado = EstadoCarga.Duplicado,
@@ -177,7 +177,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
                 IdCarga = archivoCarga.IdCarga,
                 EmpresaRuc = request.EmpresaRuc,
                 Periodo = request.Periodo,
-                TipoArchivo = Tipo,
+                TipoOperacion = Tipo,
                 Formato = formato,
                 NombreOriginal = request.NombreArchivo,
                 Estado = archivoCarga.Estado,

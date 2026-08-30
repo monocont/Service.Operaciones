@@ -28,7 +28,7 @@ public class ObtenerCargaPorIdQueryHandler : IRequestHandler<ObtenerCargaPorIdQu
             IdCarga = carga.IdCarga,
             EmpresaRuc = carga.EmpresaRuc,
             Periodo = carga.Periodo,
-            TipoArchivo = carga.TipoArchivo,
+            TipoOperacion = carga.IdTipoOperacion,
             Formato = carga.Formato,
             NombreOriginal = carga.NombreOriginal,
             HashDocumento = carga.HashDocumento,

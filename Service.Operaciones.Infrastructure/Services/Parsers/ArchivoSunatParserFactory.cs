@@ -5,15 +5,15 @@ namespace Service.Operaciones.Infrastructure.Services.Parsers;
 
 public class ArchivoSunatParserFactory : IArchivoSunatParserFactory
 {
-    public IArchivoSunatParser ObtenerParser(TipoArchivo tipoArchivo, FormatoArchivo formato)
+    public IArchivoSunatParser ObtenerParser(TipoOperacion tipoOperacion, FormatoArchivo formato)
     {
-        return (tipoArchivo, formato) switch
+        return (tipoOperacion, formato) switch
         {
-            (TipoArchivo.Compras, FormatoArchivo.Txt) => new CompraTxtParser(),
-            (TipoArchivo.Compras, FormatoArchivo.Csv) => new CompraCsvParser(),
-            (TipoArchivo.Ventas, FormatoArchivo.Txt) => new VentaTxtParser(),
-            (TipoArchivo.Ventas, FormatoArchivo.Csv) => new VentaCsvParser(),
-            _ => throw new ArgumentException($"No existe parser para combinación {tipoArchivo}/{formato}")
+            (TipoOperacion.CompraSire, FormatoArchivo.Txt) => new CompraTxtParser(),
+            (TipoOperacion.CompraSire, FormatoArchivo.Csv) => new CompraCsvParser(),
+            (TipoOperacion.VentaSire, FormatoArchivo.Txt) => new VentaTxtParser(),
+            (TipoOperacion.VentaSire, FormatoArchivo.Csv) => new VentaCsvParser(),
+            _ => throw new ArgumentException($"No existe parser para combinación {tipoOperacion}/{formato}")
         };
     }
 }

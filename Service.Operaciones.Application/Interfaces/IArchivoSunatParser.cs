@@ -5,7 +5,7 @@ namespace Service.Operaciones.Application.Interfaces;
 
 public interface IArchivoSunatParserFactory
 {
-    IArchivoSunatParser ObtenerParser(TipoArchivo tipoArchivo, FormatoArchivo formato);
+    IArchivoSunatParser ObtenerParser(TipoOperacion tipoOperacion, FormatoArchivo formato);
 }
 
 public interface IArchivoSunatParser

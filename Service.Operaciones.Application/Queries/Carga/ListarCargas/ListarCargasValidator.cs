@@ -10,8 +10,8 @@ public class ListarCargasValidator : AbstractValidator<ListarCargasQuery>
             .NotEmpty().WithMessage("El RUC de la empresa es obligatorio")
             .Length(11).WithMessage("El RUC debe tener 11 dígitos");
 
-        RuleFor(x => x.TipoArchivo)
-            .IsInEnum().WithMessage("El tipo de archivo es obligatorio y debe ser válido (Ventas o Compras)");
+        RuleFor(x => x.TipoOperacion)
+            .IsInEnum().WithMessage("El tipo de operación es obligatorio y debe ser válido");
 
         RuleFor(x => x.PageNumber)
             .NotNull().WithMessage("PageNumber es obligatorio")
