@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS operaciones.archivo_carga_error (
     campo_error     VARCHAR(50),
     valor_lectura   VARCHAR(500),
     mensaje         VARCHAR(500) NOT NULL,
-    severidad       VARCHAR(15) NOT NULL DEFAULT 'Error',
+    severidad       VARCHAR(20) NOT NULL DEFAULT 'Error',
     fecha_registro  TIMESTAMP NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_archivo_carga_error PRIMARY KEY (id_error),

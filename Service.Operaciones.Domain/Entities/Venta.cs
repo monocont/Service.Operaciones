@@ -6,6 +6,7 @@ public class Venta : EntidadAuditoria
     public Guid IdCarga { get; private set; }
     public string EmpresaRuc { get; private set; } = string.Empty;
     public string Periodo { get; private set; } = string.Empty;
+    public int NumeroLinea { get; private set; }
 
     public string CarSunat { get; private set; } = string.Empty;
     public string CodigoTipoCp { get; private set; } = string.Empty;
@@ -70,6 +71,7 @@ public class Venta : EntidadAuditoria
         decimal tipoCambio,
         string codigoEstadoComprobante,
         string usuarioCreacion,
+        int numeroLinea = 1,
         string? numeroFinal = null,
         DateTime? fechaVctoPago = null,
         decimal valorFactExp = 0,
@@ -102,6 +104,7 @@ public class Venta : EntidadAuditoria
             IdCarga = idCarga,
             EmpresaRuc = empresaRuc,
             Periodo = periodo,
+            NumeroLinea = numeroLinea,
             CarSunat = carSunat,
             CodigoTipoCp = codigoTipoCp,
             Serie = serie,

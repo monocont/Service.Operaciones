@@ -22,54 +22,72 @@ public class ErrorHandlingMiddleware
         {
             await _next(context);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogWarning(ex, "Unauthorized access: {Message}", ex.Message);
-            await WriteErrorResponse(context, HttpStatusCode.Unauthorized, ex.Message);
-        }
-        catch (UnauthorizedException ex)
-        {
-            _logger.LogWarning(ex, "Forbidden: {Message}", ex.Message);
-            await WriteErrorResponse(context, HttpStatusCode.Forbidden, ex.Message);
-        }
-        catch (NotFoundException ex)
-        {
-            _logger.LogInformation(ex, "Not found: {Message}", ex.Message);
-            await WriteErrorResponse(context, HttpStatusCode.NotFound, ex.Message);
-        }
-        catch (ValidationException ex)
-        {
-            _logger.LogInformation(ex, "Validation error: {Message}", ex.Message);
-            await WriteErrorResponse(context, HttpStatusCode.BadRequest, ex.Errors.ToArray());
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogInformation(ex, "Argument error: {Message}", ex.Message);
-            await WriteErrorResponse(context, HttpStatusCode.BadRequest, ex.Message);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            _logger.LogInformation(ex, "FluentValidation error: {Message}", ex.Message);
-            var errors = ex.Errors.Select(e => e.ErrorMessage).ToArray();
-            await WriteErrorResponse(context, HttpStatusCode.BadRequest, errors);
-        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
-            await WriteErrorResponse(context, HttpStatusCode.InternalServerError, "Error en el proceso");
+            await HandleExceptionAsync(context, ex);
         }
     }
 
-    private static async Task WriteErrorResponse(HttpContext context, HttpStatusCode statusCode, params string[] errors)
+    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        (int statusCode, string title, List<string> errors) = exception switch
+        {
+            ValidationException validationEx => (
+                (int)HttpStatusCode.BadRequest,
+                "Error de validación",
+                validationEx.Errors != null && validationEx.Errors.Count > 0
+                    ? validationEx.Errors
+                    : [validationEx.Message]
+            ),
+            ArgumentException argumentEx => (
+                (int)HttpStatusCode.BadRequest,
+                "Error de argumento",
+                [argumentEx.Message]
+            ),
+            FluentValidation.ValidationException fluentEx => (
+                (int)HttpStatusCode.BadRequest,
+                "Error de validación",
+                fluentEx.Errors.Select(e => e.ErrorMessage).ToList()
+            ),
+            NotFoundException notFoundEx => (
+                (int)HttpStatusCode.NotFound,
+                "No encontrado",
+                [notFoundEx.Message]
+            ),
+            UnauthorizedException unauthorizedEx => (
+                (int)HttpStatusCode.Forbidden,
+                "No autorizado",
+                [unauthorizedEx.Message]
+            ),
+            UnauthorizedAccessException => (
+                (int)HttpStatusCode.Unauthorized,
+                "No autorizado",
+                ["Acceso no autorizado."]
+            ),
+            _ => (
+                (int)HttpStatusCode.InternalServerError,
+                "Error interno",
+                ["Error en el proceso"]
+            )
+        };
+
+        if (statusCode == (int)HttpStatusCode.InternalServerError)
+        {
+            _logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+        }
+        else
+        {
+            _logger.LogWarning(exception, "{Title}: {Message}", title, exception.Message);
+        }
+
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)statusCode;
+        context.Response.StatusCode = statusCode;
 
         var response = new ApiResponse<object>
         {
             Data = null,
             Success = false,
-            Errors = errors.ToList()
+            Errors = errors
         };
 
         var json = JsonSerializer.Serialize(response, new JsonSerializerOptions

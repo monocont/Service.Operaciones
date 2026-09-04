@@ -102,6 +102,9 @@ public class ActualizarVentasEmpresaCommandHandler : IRequestHandler<ActualizarV
                 await _ventaEmpresaRepo.AgregarRangoAsync(nuevosEntidades, cancellationToken);
             }
 
+            // 3.1 Persistir modificaciones/altas/bajas en la transacción antes de revalidar
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
             // 4. Limpiar errores previos para regenerar diagnóstico completo
             await _archivoCargaErrorRepo.EliminarPorCargaAsync(archivoCarga.IdCarga, cancellationToken);
 
@@ -130,7 +133,7 @@ public class ActualizarVentasEmpresaCommandHandler : IRequestHandler<ActualizarV
                 0,
                 totalGeneral);
 
-            // 7. Commit atómico
+            // 7. Persistir nuevos errores/métricas y confirmar transacción atómicamente
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 

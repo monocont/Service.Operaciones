@@ -301,6 +301,77 @@ public class CargaController : ControllerBase
     }
 
     /// <summary>
+    /// Ejecuta el proceso de match y cruce de datos entre Ventas SIRE y Ventas de la Empresa para un periodo
+    /// </summary>
+    [HttpPost("ventas/ejecutar-match")]
+    public async Task<IActionResult> EjecutarMatchVentas(
+        [FromBody] EjecutarMatchVentasRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new Service.Operaciones.Application.Commands.Venta.EjecutarMatchVentas.EjecutarMatchVentasCommand(
+            request.EmpresaRuc,
+            request.Periodo,
+            ObtenerUsuario()
+        );
+
+        var resultado = await _mediator.Send(command, cancellationToken);
+        return Ok(resultado);
+    }
+
+    /// <summary>
+    /// Re-ejecuta el proceso de match: elimina todos los registros de match y observaciones previas del periodo y vuelve a cruzar SIRE vs Empresa
+    /// </summary>
+    [HttpPost("ventas/re-ejecutar-match")]
+    public async Task<IActionResult> ReejecutarMatchVentas(
+        [FromBody] EjecutarMatchVentasRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new Service.Operaciones.Application.Commands.Venta.EjecutarMatchVentas.EjecutarMatchVentasCommand(
+            request.EmpresaRuc,
+            request.Periodo,
+            ObtenerUsuario()
+        );
+
+        var resultado = await _mediator.Send(command, cancellationToken);
+        return Ok(resultado);
+    }
+
+    /// <summary>
+    /// Lista los comprobantes resultantes del match de ventas para una carga específica
+    /// </summary>
+    [HttpGet("cargas/{idCarga:guid}/ventas-match")]
+    public async Task<IActionResult> ListarVentasMatch(
+        [FromRoute] Guid idCarga,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new Service.Operaciones.Application.Queries.Venta.ListarVentasMatch.ListarVentasMatchQuery(idCarga);
+        var resultado = await _mediator.Send(query, cancellationToken);
+        return Ok(resultado);
+    }
+
+    /// <summary>
+    /// Actualiza y sincroniza los comprobantes de match de ventas de una carga y revalida discrepancias y observaciones
+    /// </summary>
+    [HttpPost("cargas/{idCarga:guid}/actualizar-ventas-match")]
+    public async Task<IActionResult> ActualizarVentasMatch(
+        [FromRoute] Guid idCarga,
+        [FromBody] ActualizarVentasMatchRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new Service.Operaciones.Application.Commands.Venta.ActualizarVentasMatch.ActualizarVentasMatchCommand
+        {
+            IdCarga = idCarga,
+            EliminadosIds = request.EliminadosIds,
+            Nuevos = request.Nuevos,
+            Modificados = request.Modificados,
+            Usuario = ObtenerUsuario()
+        };
+
+        var resultado = await _mediator.Send(command, cancellationToken);
+        return Ok(resultado);
+    }
+
+    /// <summary>
     /// Elimina físicamente una carga de archivos y todos sus registros asociados (errores, ventas, etc.)
     /// </summary>
     [HttpDelete("cargas/{idCarga:guid}")]
@@ -364,9 +435,22 @@ public class ActualizarVentasEmpresaRequest
     public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentasEmpresa.ModificarVentaEmpresaRegistroDTO> Modificados { get; set; } = new();
 }
 
+public class ActualizarVentasMatchRequest
+{
+    public List<Guid> EliminadosIds { get; set; } = new();
+    public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentasMatch.CrearVentaMatchRegistroDTO> Nuevos { get; set; } = new();
+    public List<Service.Operaciones.Application.Commands.Venta.ActualizarVentasMatch.ModificarVentaMatchRegistroDTO> Modificados { get; set; } = new();
+}
+
 public class ActualizarComprasRequest
 {
     public List<Guid> EliminadosIds { get; set; } = new();
     public List<Service.Operaciones.Application.Commands.Compra.ActualizarCompras.CrearCompraRegistroDTO> Nuevos { get; set; } = new();
     public List<Service.Operaciones.Application.Commands.Compra.ActualizarCompras.ModificarCompraRegistroDTO> Modificados { get; set; } = new();
+}
+
+public class EjecutarMatchVentasRequest
+{
+    public required string EmpresaRuc { get; set; }
+    public required string Periodo { get; set; }
 }

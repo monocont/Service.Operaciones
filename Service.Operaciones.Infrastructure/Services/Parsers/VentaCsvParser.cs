@@ -50,7 +50,9 @@ public class VentaCsvParser : IArchivoSunatParser
             }
             esEncabezado = false;
 
-            var campos = linea.Split(',');
+            // Detectar delimitador dinámicamente (soporta comas ',' y punto y coma ';')
+            var delimitador = linea.Contains(';') ? ';' : ',';
+            var campos = linea.Split(delimitador);
 
             if (campos.Length < 25)
             {
@@ -66,7 +68,12 @@ public class VentaCsvParser : IArchivoSunatParser
             var diccionario = new Dictionary<string, string>();
             for (var i = 0; i < Math.Min(campos.Length, NombresColumnas.Length); i++)
             {
-                diccionario[NombresColumnas[i]] = campos[i].Trim();
+                var valor = campos[i].Trim();
+                if (valor == "-")
+                {
+                    valor = string.Empty;
+                }
+                diccionario[NombresColumnas[i]] = valor;
             }
 
             if (!diccionario.ContainsKey("estado_comprobante"))
@@ -99,7 +106,8 @@ public class VentaCsvParser : IArchivoSunatParser
 
     private static bool EsEncabezado(string linea)
     {
-        var primeraColumna = linea.Split(',')[0];
+        var delimitador = linea.Contains(';') ? ';' : ',';
+        var primeraColumna = linea.Split(delimitador)[0].Trim().TrimStart('\uFEFF');
         return !primeraColumna.All(char.IsDigit) || primeraColumna.Length != 11;
     }
 

@@ -28,6 +28,7 @@ public class VentaValidationService : IVentaValidationService
 
         var anioPeriodo = int.Parse(periodo[..4]);
         var mesPeriodo = int.Parse(periodo[4..]);
+        var primerDiaPeriodo = new DateTime(anioPeriodo, mesPeriodo, 1);
         var ultimoDiaPeriodo = new DateTime(anioPeriodo, mesPeriodo, DateTime.DaysInMonth(anioPeriodo, mesPeriodo));
 
         var comprobantesPorSerieNumero = new Dictionary<string, List<int>>();
@@ -83,8 +84,8 @@ public class VentaValidationService : IVentaValidationService
                     severidad: SeveridadError.Advertencia));
             }
 
-            // Validación 5: Fecha Máxima de Emisión
-            if (fechaEmision.Date > ultimoDiaPeriodo.Date)
+            // Validación 5: Fecha de Emisión (Debe pertenecer al periodo seleccionado)
+            if (fechaEmision.Date < primerDiaPeriodo.Date || fechaEmision.Date > ultimoDiaPeriodo.Date)
             {
                 var periodoFecha = $"{fechaEmision.Year}{fechaEmision.Month:D2}";
                 var esFechaSuperior = string.Compare(periodoFecha, periodo, StringComparison.Ordinal) > 0;
@@ -94,7 +95,7 @@ public class VentaValidationService : IVentaValidationService
                     idCarga,
                     numeroLinea,
                     TipoErrorCarga.Negocio,
-                    $"Fecha fuera de periodo: El comprobante Serie '{serie}', Número '{numero}' tiene fecha de emisión {fechaEmision:dd/MM/yyyy} correspondiente al periodo '{periodoFecha}' (posterior al cierre {ultimoDiaPeriodo:dd/MM/yyyy})",
+                    $"Fecha fuera de periodo: El comprobante Serie '{serie}', Número '{numero}' tiene fecha de emisión {fechaEmision:dd/MM/yyyy} correspondiente al periodo '{periodoFecha}' (el periodo seleccionado es '{periodo}')",
                     campoError: "fecha_emision",
                     valorLectura: fechaEmision.ToString("dd/MM/yyyy"),
                     severidad: sevFecha));

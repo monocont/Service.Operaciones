@@ -131,7 +131,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
             {
                 try
                 {
-                    var venta = ConstruirVenta(resultado.Campos, request.EmpresaRuc, request.Periodo, archivoCarga.IdCarga, request.Usuario);
+                    var venta = ConstruirVenta(resultado.NumeroLinea, resultado.Campos, request.EmpresaRuc, request.Periodo, archivoCarga.IdCarga, request.Usuario);
                     ventas.Add(venta);
                 }
                 catch (Exception ex)
@@ -198,12 +198,13 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
         }
     }
 
-    private static VentaEntity ConstruirVenta(Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
+    private static VentaEntity ConstruirVenta(int numeroLinea, Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
     {
         return VentaEntity.Crear(
             empresaRuc: empresaRuc,
             periodo: periodo,
             idCarga: idCarga,
+            numeroLinea: numeroLinea,
             carSunat: c.GetValueOrDefault("car_sunat") ?? string.Empty,
             codigoTipoCp: c.GetValueOrDefault("tipo_cp") ?? string.Empty,
             serie: c.GetValueOrDefault("serie") ?? string.Empty,

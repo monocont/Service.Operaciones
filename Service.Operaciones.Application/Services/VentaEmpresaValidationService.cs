@@ -71,18 +71,6 @@ public class VentaEmpresaValidationService : IVentaEmpresaValidationService
                     severidad: sevFecha));
             }
 
-            // Validación 3: Validar que el TOTAL CP sea mayor o igual a 0
-            if (totalCp < 0)
-            {
-                errores.Add(ArchivoCargaError.Crear(
-                    idCarga,
-                    numeroLinea,
-                    TipoErrorCarga.Validacion,
-                    $"Importe inválido: El comprobante Serie '{serie}', Número '{numero}' tiene un importe Total CP negativo ({totalCp:F2}), debe ser mayor o igual a 0.",
-                    campoError: "total_cp",
-                    valorLectura: totalCp.ToString("F2"),
-                    severidad: SeveridadError.Error));
-            }
 
             // Validación 4: Documento de Identidad del Cliente (DNI, RUC y Genéricos/Extranjeros)
             var tipoDoc = (venta.CodigoTipoDocIdentidad ?? string.Empty).Trim();

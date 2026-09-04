@@ -97,6 +97,7 @@ builder.Services.AddScoped<IArchivoCargaErrorRepository, ArchivoCargaErrorReposi
 builder.Services.AddScoped<ICompraRepository, CompraRepository>();
 builder.Services.AddScoped<IVentaRepository, VentaRepository>();
 builder.Services.AddScoped<IVentaEmpresaRepository, VentaEmpresaRepository>();
+builder.Services.AddScoped<IVentaMatchRepository, VentaMatchRepository>();
 
 // Servicios de Application
 builder.Services.AddScoped<IHashService, HashService>();

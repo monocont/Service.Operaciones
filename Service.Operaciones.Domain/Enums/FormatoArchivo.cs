@@ -5,5 +5,6 @@ public enum FormatoArchivo
     Txt,
     Csv,
     Xlsx,
-    Xls
+    Xls,
+    Sistema
 }
