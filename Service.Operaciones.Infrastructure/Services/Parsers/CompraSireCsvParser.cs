@@ -3,22 +3,33 @@ using Service.Operaciones.Application.Interfaces;
 namespace Service.Operaciones.Infrastructure.Services.Parsers;
 
 /// <summary>
-/// Parser de archivo de Compras en formato CSV (delimitador coma ,).
-/// Reutiliza el mapeo del CompraTxtParser con delimitador distinto.
+/// Parser de archivo de Compras SIRE (RCE) en formato CSV (delimitador coma ,).
+/// Reutiliza el mapeo oficial de 41 columnas con delimitador coma y omite CLU1..39.
 /// </summary>
-public class CompraCsvParser : CompraTxtParser, IArchivoSunatParser
+public class CompraSireCsvParser : CompraSireTxtParser, IArchivoSunatParser
 {
-    public CompraCsvParser()
+    private static readonly string[] NombresColumnasCsv = new[]
     {
-        // Override del delimitador: en CSV es coma.
-        // Nota: el base constructor ya ejecutó con pipe, lo reajustamos aquí.
-    }
+        "ruc", "razon_social_empresa", "periodo", "car_sunat",
+        "fecha_emision", "fecha_vencimiento", "tipo_cp", "serie", "anio_documento",
+        "numero", "numero_final", "tipo_doc_identidad", "nro_doc_identidad", "razon_social",
+        "bi_gravado_dg", "igv_ipm_dg", "bi_gravado_dgng", "igv_ipm_dgng",
+        "bi_gravado_dng", "igv_ipm_dng", "valor_adq_ng",
+        "monto_isc", "monto_icbper", "monto_otros_tributos", "total_cp",
+        "moneda", "tipo_cambio",
+        "fecha_emision_doc_modificado", "tipo_cp_modificado", "serie_cp_modificado",
+        "cod_dam_dsi", "numero_cp_modificado", "clasif_bss_sss",
+        "id_proyecto_op", "porc_part", "imb", "car_orig_ind_e_i", "detraccion",
+        "tipo_nota", "estado_comprobante", "incal"
+    };
 
-    protected new char Delimitador => ',';
+    public CompraSireCsvParser()
+    {
+        Delimitador = ',';
+    }
 
     public new async Task<List<ResultadoParseoLinea>> ParsearAsync(Stream stream, CancellationToken cancellationToken)
     {
-        // Implementación que usa el delimitador ',' en lugar de '|'
         var resultados = new List<ResultadoParseoLinea>();
         using var reader = new StreamReader(stream);
 
@@ -36,7 +47,7 @@ public class CompraCsvParser : CompraTxtParser, IArchivoSunatParser
                 continue;
             }
 
-            if (esEncabezado && EsEncabezado(linea))
+            if (esEncabezado && EsEncabezadoCsv(linea))
             {
                 esEncabezado = false;
                 continue;
@@ -57,24 +68,15 @@ public class CompraCsvParser : CompraTxtParser, IArchivoSunatParser
             }
 
             var diccionario = new Dictionary<string, string>();
-            var nombres = new[]
+            var limite = Math.Min(campos.Length, NombresColumnasCsv.Length);
+            for (var i = 0; i < limite; i++)
             {
-                "ruc", "razon_social_empresa", "periodo", "car_sunat",
-                "fecha_emision", "fecha_vcto_pago", "tipo_cp", "serie", "anio_documento",
-                "numero", "numero_final", "tipo_doc_identidad", "nro_doc_identidad", "razon_social",
-                "bi_gravado_dg", "igv_ipm_dg", "bi_gravado_dgng", "igv_ipm_dgng",
-                "bi_gravado_dng", "igv_ipm_dng", "valor_adq_ng",
-                "isc", "icbper", "otros_trib_cargos", "total_cp",
-                "moneda", "tipo_cambio",
-                "fecha_emision_doc_modif", "tipo_cp_modificado", "serie_cp_modificado",
-                "cod_dam_dsi", "nro_cp_modificado", "clasif_bss_sss",
-                "id_proyecto_op", "porc_part", "imb", "car_orig_ind_e_i", "detraccion",
-                "tipo_nota", "estado_comprobante", "incal"
-            };
+                diccionario[NombresColumnasCsv[i]] = campos[i].Trim();
+            }
 
-            for (var i = 0; i < Math.Min(campos.Length, nombres.Length); i++)
+            if (!diccionario.ContainsKey("estado_comprobante") || string.IsNullOrWhiteSpace(diccionario["estado_comprobante"]))
             {
-                diccionario[nombres[i]] = campos[i].Trim();
+                diccionario["estado_comprobante"] = "1";
             }
 
             var errores = ValidarCamposObligatorios(diccionario);
@@ -100,9 +102,9 @@ public class CompraCsvParser : CompraTxtParser, IArchivoSunatParser
         return resultados;
     }
 
-    private static bool EsEncabezado(string linea)
+    private static bool EsEncabezadoCsv(string linea)
     {
-        var primeraColumna = linea.Split(',')[0];
+        var primeraColumna = linea.Split(',')[0].Trim().TrimStart('\uFEFF');
         return !primeraColumna.All(char.IsDigit) || primeraColumna.Length != 11;
     }
 
@@ -110,10 +112,6 @@ public class CompraCsvParser : CompraTxtParser, IArchivoSunatParser
     {
         var errores = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(c.GetValueOrDefault("car_sunat")))
-        {
-            errores.Add("car_sunat es obligatorio");
-        }
         if (string.IsNullOrWhiteSpace(c.GetValueOrDefault("tipo_cp")))
         {
             errores.Add("tipo_cp es obligatorio");

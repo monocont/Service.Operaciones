@@ -7,11 +7,11 @@ namespace Service.Operaciones.Application.Queries.Compra.ListarCompras;
 
 public class ListarComprasQueryHandler : IRequestHandler<ListarComprasQuery, List<CompraDTO>>
 {
-    private readonly ICompraRepository _repositorio;
+    private readonly ICompraSireRepository _repositorio;
     private readonly IArchivoCargaRepository _cargaRepository;
     private readonly IAccesoEmpresaValidator _accesoValidator;
 
-    public ListarComprasQueryHandler(ICompraRepository repositorio, IArchivoCargaRepository cargaRepository, IAccesoEmpresaValidator accesoValidator)
+    public ListarComprasQueryHandler(ICompraSireRepository repositorio, IArchivoCargaRepository cargaRepository, IAccesoEmpresaValidator accesoValidator)
     {
         _repositorio = repositorio;
         _cargaRepository = cargaRepository;
@@ -31,6 +31,8 @@ public class ListarComprasQueryHandler : IRequestHandler<ListarComprasQuery, Lis
         return compras.Select(c => new CompraDTO
         {
             IdCompra = c.IdCompra,
+            EmpresaRuc = c.EmpresaRuc,
+            Periodo = c.Periodo,
             CarSunat = c.CarSunat,
             CodigoTipoCp = c.CodigoTipoCp,
             Serie = c.Serie,

@@ -8,7 +8,7 @@ public class OperacionesDbContext : DbContext
     public DbSet<TipoOperacionCatalogo> TipoOperacion => Set<TipoOperacionCatalogo>();
     public DbSet<ArchivoCarga> ArchivoCarga => Set<ArchivoCarga>();
     public DbSet<ArchivoCargaError> ArchivoCargaError => Set<ArchivoCargaError>();
-    public DbSet<Compra> Compra => Set<Compra>();
+    public DbSet<CompraSire> CompraSire => Set<CompraSire>();
     public DbSet<Venta> Venta => Set<Venta>();
     public DbSet<VentaEmpresa> VentaEmpresa => Set<VentaEmpresa>();
     public DbSet<VentaMatch> VentaMatch => Set<VentaMatch>();
@@ -91,25 +91,28 @@ public class OperacionesDbContext : DbContext
             entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_ace_carga");
         });
 
-        modelBuilder.Entity<Compra>(entity =>
+        modelBuilder.Entity<CompraSire>(entity =>
         {
-            entity.ToTable("compra");
+            entity.ToTable("compra_sire");
             entity.HasKey(e => e.IdCompra);
             entity.Property(e => e.IdCompra).HasColumnName("id_compra").HasColumnType("uuid");
             entity.Property(e => e.IdCarga).HasColumnName("id_carga").HasColumnType("uuid");
             entity.Property(e => e.EmpresaRuc).HasColumnName("empresa_ruc").HasMaxLength(20).IsRequired();
             entity.Property(e => e.Periodo).HasColumnName("periodo").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.NumeroLinea).HasColumnName("numero_linea").IsRequired();
+
             entity.Property(e => e.CarSunat).HasColumnName("car_sunat").HasMaxLength(40).IsRequired();
+            entity.Property(e => e.FechaEmision).HasColumnName("fecha_emision").HasColumnType("date").IsRequired();
+            entity.Property(e => e.FechaVencimiento).HasColumnName("fecha_vencimiento").HasColumnType("date");
             entity.Property(e => e.CodigoTipoCp).HasColumnName("codigo_tipo_cp").HasMaxLength(20).IsRequired();
             entity.Property(e => e.Serie).HasColumnName("serie").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.AnioDocumento).HasColumnName("anio_documento").HasMaxLength(20);
             entity.Property(e => e.Numero).HasColumnName("numero").HasMaxLength(20).IsRequired();
             entity.Property(e => e.NumeroFinal).HasColumnName("numero_final").HasMaxLength(20);
-            entity.Property(e => e.AnioDocumento).HasColumnName("anio_documento").HasMaxLength(20);
-            entity.Property(e => e.FechaEmision).HasColumnName("fecha_emision").HasColumnType("date").IsRequired();
-            entity.Property(e => e.FechaVctoPago).HasColumnName("fecha_vcto_pago").HasColumnType("date");
             entity.Property(e => e.CodigoTipoDocIdentidad).HasColumnName("codigo_tipo_doc_identidad").HasMaxLength(20).IsRequired();
             entity.Property(e => e.NroDocIdentidad).HasColumnName("nro_doc_identidad").HasMaxLength(20).IsRequired();
             entity.Property(e => e.RazonSocial).HasColumnName("razon_social").HasMaxLength(1500).IsRequired();
+
             entity.Property(e => e.BiGravadoDg).HasColumnName("bi_gravado_dg").HasColumnType("numeric(18,8)");
             entity.Property(e => e.IgvIpmDg).HasColumnName("igv_ipm_dg").HasColumnType("numeric(18,8)");
             entity.Property(e => e.BiGravadoDgng).HasColumnName("bi_gravado_dgng").HasColumnType("numeric(18,8)");
@@ -117,27 +120,31 @@ public class OperacionesDbContext : DbContext
             entity.Property(e => e.BiGravadoDng).HasColumnName("bi_gravado_dng").HasColumnType("numeric(18,8)");
             entity.Property(e => e.IgvIpmDng).HasColumnName("igv_ipm_dng").HasColumnType("numeric(18,8)");
             entity.Property(e => e.ValorAdqNg).HasColumnName("valor_adq_ng").HasColumnType("numeric(18,8)");
-            entity.Property(e => e.Isc).HasColumnName("isc").HasColumnType("numeric(18,8)");
-            entity.Property(e => e.Icbper).HasColumnName("icbper").HasColumnType("numeric(18,8)");
-            entity.Property(e => e.OtrosTribCargos).HasColumnName("otros_trib_cargos").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoIsc).HasColumnName("monto_isc").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoIcbper).HasColumnName("monto_icbper").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoOtrosTributos).HasColumnName("monto_otros_tributos").HasColumnType("numeric(18,8)");
             entity.Property(e => e.TotalCp).HasColumnName("total_cp").HasColumnType("numeric(18,8)").IsRequired();
+
             entity.Property(e => e.CodigoMoneda).HasColumnName("codigo_moneda").HasMaxLength(20).IsRequired();
             entity.Property(e => e.TipoCambio).HasColumnName("tipo_cambio").HasColumnType("numeric(18,8)");
-            entity.Property(e => e.FechaEmisionDocModif).HasColumnName("fecha_emision_doc_modif").HasColumnType("date");
-            entity.Property(e => e.TipoCpModificado).HasColumnName("tipo_cp_modificado").HasMaxLength(20);
+
+            entity.Property(e => e.FechaEmisionDocModificado).HasColumnName("fecha_emision_doc_modificado").HasColumnType("date");
+            entity.Property(e => e.CodigoTipoCpModificado).HasColumnName("codigo_tipo_cp_modificado").HasMaxLength(20);
             entity.Property(e => e.SerieCpModificado).HasColumnName("serie_cp_modificado").HasMaxLength(20);
-            entity.Property(e => e.NroCpModificado).HasColumnName("nro_cp_modificado").HasMaxLength(20);
             entity.Property(e => e.CodDamDsi).HasColumnName("cod_dam_dsi").HasMaxLength(20);
+            entity.Property(e => e.NumeroCpModificado).HasColumnName("numero_cp_modificado").HasMaxLength(20);
+
             entity.Property(e => e.ClasifBssSss).HasColumnName("clasif_bss_sss").HasMaxLength(20);
             entity.Property(e => e.IdProyectoOp).HasColumnName("id_proyecto_op").HasMaxLength(50);
             entity.Property(e => e.PorcPart).HasColumnName("porc_part").HasColumnType("numeric(18,8)");
             entity.Property(e => e.Imb).HasColumnName("imb").HasColumnType("numeric(18,8)");
-            entity.Property(e => e.CarOrigIndEI).HasColumnName("car_orig_ind_e_i").HasMaxLength(20);
+            entity.Property(e => e.CarOrigIndEI).HasColumnName("car_orig_ind_e_i").HasMaxLength(40);
             entity.Property(e => e.Detraccion).HasColumnName("detraccion").HasMaxLength(50);
             entity.Property(e => e.CodigoTipoNota).HasColumnName("codigo_tipo_nota").HasMaxLength(20);
             entity.Property(e => e.CodigoEstadoComprobante).HasColumnName("codigo_estado_comprobante").HasMaxLength(20).IsRequired();
             entity.Property(e => e.Incal).HasColumnName("incal").HasMaxLength(20);
-            entity.Property(e => e.CamposLibres).HasColumnName("campos_libres");
+
+            entity.Property(e => e.CamposLibres).HasColumnName("campos_libres").HasMaxLength(500);
             entity.Property(e => e.CreadoPor).HasColumnName("creado_por").HasMaxLength(150);
             entity.Property(e => e.FechaCreacion).HasColumnName("fecha_creacion");
             entity.Property(e => e.ModificadoPor).HasColumnName("modificado_por").HasMaxLength(150);
@@ -145,10 +152,10 @@ public class OperacionesDbContext : DbContext
             entity.Property(e => e.Activo).HasColumnName("activo").HasDefaultValue(true);
             entity.HasQueryFilter(e => e.Activo);
 
-            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.CarSunat })
-                .HasDatabaseName("idx_compra_car_sunat");
-            entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_compra_carga");
-            entity.HasIndex(e => new { e.CodigoTipoCp, e.Serie, e.Numero }).HasDatabaseName("idx_compra_tipo_serie_num");
+            entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_compra_sire_carga");
+            entity.HasIndex(e => new { e.Serie, e.Numero }).HasDatabaseName("idx_compra_sire_serie_num");
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.CarSunat }).HasDatabaseName("idx_compra_sire_car_sunat");
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo }).HasDatabaseName("idx_compra_sire_empresa_periodo");
         });
 
         modelBuilder.Entity<Venta>(entity =>

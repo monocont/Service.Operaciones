@@ -200,12 +200,14 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
 
     private static VentaEntity ConstruirVenta(int numeroLinea, Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
     {
+        var rucFila = c.GetValueOrDefault("ruc");
+        var periodoFila = c.GetValueOrDefault("periodo");
+
         return VentaEntity.Crear(
-            empresaRuc: empresaRuc,
-            periodo: periodo,
+            empresaRuc: !string.IsNullOrWhiteSpace(rucFila) ? rucFila.Trim() : empresaRuc,
+            periodo: !string.IsNullOrWhiteSpace(periodoFila) ? periodoFila.Trim() : periodo,
             idCarga: idCarga,
             numeroLinea: numeroLinea,
-            carSunat: c.GetValueOrDefault("car_sunat") ?? string.Empty,
             codigoTipoCp: c.GetValueOrDefault("tipo_cp") ?? string.Empty,
             serie: c.GetValueOrDefault("serie") ?? string.Empty,
             numero: c.GetValueOrDefault("numero") ?? string.Empty,
@@ -218,6 +220,7 @@ public class CargarArchivoVentasCommandHandler : IRequestHandler<CargarArchivoVe
             tipoCambio: decimal.TryParse(c.GetValueOrDefault("tipo_cambio"), out var tca) ? tca : 1.0000m,
             codigoEstadoComprobante: c.GetValueOrDefault("estado_comprobante") ?? "1",
             usuarioCreacion: usuario,
+            carSunat: !string.IsNullOrWhiteSpace(c.GetValueOrDefault("car_sunat")) ? c["car_sunat"].Trim() : null,
             numeroFinal: string.IsNullOrEmpty(c.GetValueOrDefault("numero_final")) ? null : c.GetValueOrDefault("numero_final"),
             fechaVctoPago: DateTime.TryParse(c.GetValueOrDefault("fecha_vcto_pago"), out var fv) ? fv : null,
             valorFactExp: decimal.TryParse(c.GetValueOrDefault("valor_fact_exp"), out var vfe) ? vfe : 0,

@@ -1,25 +1,27 @@
 namespace Service.Operaciones.Domain.Entities;
 
-public class Compra : EntidadAuditoria
+public class CompraSire : EntidadAuditoria
 {
     public Guid IdCompra { get; private set; }
     public Guid IdCarga { get; private set; }
     public string EmpresaRuc { get; private set; } = string.Empty;
     public string Periodo { get; private set; } = string.Empty;
+    public int NumeroLinea { get; private set; }
 
-    public string CarSunat { get; private set; } = string.Empty;
+    // Columnas 04 a 14: Datos Principales del Comprobante
+    public string? CarSunat { get; private set; }
+    public DateTime FechaEmision { get; private set; }
+    public DateTime? FechaVencimiento { get; private set; }
     public string CodigoTipoCp { get; private set; } = string.Empty;
     public string Serie { get; private set; } = string.Empty;
+    public string? AnioDocumento { get; private set; }
     public string Numero { get; private set; } = string.Empty;
     public string? NumeroFinal { get; private set; }
-    public string? AnioDocumento { get; private set; }
-    public DateTime FechaEmision { get; private set; }
-    public DateTime? FechaVctoPago { get; private set; }
-
     public string CodigoTipoDocIdentidad { get; private set; } = string.Empty;
     public string NroDocIdentidad { get; private set; } = string.Empty;
     public string RazonSocial { get; private set; } = string.Empty;
 
+    // Columnas 15 a 25: Bases Imponibles, Impuestos y Totales
     public decimal BiGravadoDg { get; private set; }
     public decimal IgvIpmDg { get; private set; }
     public decimal BiGravadoDgng { get; private set; }
@@ -27,45 +29,47 @@ public class Compra : EntidadAuditoria
     public decimal BiGravadoDng { get; private set; }
     public decimal IgvIpmDng { get; private set; }
     public decimal ValorAdqNg { get; private set; }
-
-    public decimal Isc { get; private set; }
-    public decimal Icbper { get; private set; }
-    public decimal OtrosTribCargos { get; private set; }
+    public decimal MontoIsc { get; private set; }
+    public decimal MontoIcbper { get; private set; }
+    public decimal MontoOtrosTributos { get; private set; }
     public decimal TotalCp { get; private set; }
 
+    // Columnas 26 a 27: Moneda y Tipo de Cambio
     public string CodigoMoneda { get; private set; } = string.Empty;
     public decimal TipoCambio { get; private set; }
 
-    public DateTime? FechaEmisionDocModif { get; private set; }
-    public string? TipoCpModificado { get; private set; }
+    // Columnas 28 a 32: Documento de Referencia / Modificado
+    public DateTime? FechaEmisionDocModificado { get; private set; }
+    public string? CodigoTipoCpModificado { get; private set; }
     public string? SerieCpModificado { get; private set; }
-    public string? NroCpModificado { get; private set; }
     public string? CodDamDsi { get; private set; }
-    public string? ClasifBssSss { get; private set; }
+    public string? NumeroCpModificado { get; private set; }
 
+    // Columnas 33 a 41: Atributos Especiales de Compras RCE
+    public string? ClasifBssSss { get; private set; }
     public string? IdProyectoOp { get; private set; }
     public decimal? PorcPart { get; private set; }
-    public decimal? Imb { get; private set; }
+    public decimal Imb { get; private set; }
     public string? CarOrigIndEI { get; private set; }
     public string? Detraccion { get; private set; }
-
     public string? CodigoTipoNota { get; private set; }
     public string CodigoEstadoComprobante { get; private set; } = string.Empty;
     public string? Incal { get; private set; }
 
+    // Campos Libres y Auditoría
     public string? CamposLibres { get; private set; }
 
-    private Compra() { }
+    private CompraSire() { }
 
-    public static Compra Crear(
+    public static CompraSire Crear(
         string empresaRuc,
         string periodo,
         Guid idCarga,
-        string carSunat,
+        int numeroLinea,
+        DateTime fechaEmision,
         string codigoTipoCp,
         string serie,
         string numero,
-        DateTime fechaEmision,
         string codigoTipoDocIdentidad,
         string nroDocIdentidad,
         string razonSocial,
@@ -74,9 +78,10 @@ public class Compra : EntidadAuditoria
         decimal tipoCambio,
         string codigoEstadoComprobante,
         string usuarioCreacion,
-        string? numeroFinal = null,
+        string? carSunat = null,
+        DateTime? fechaVencimiento = null,
         string? anioDocumento = null,
-        DateTime? fechaVctoPago = null,
+        string? numeroFinal = null,
         decimal biGravadoDg = 0,
         decimal igvIpmDg = 0,
         decimal biGravadoDgng = 0,
@@ -84,38 +89,39 @@ public class Compra : EntidadAuditoria
         decimal biGravadoDng = 0,
         decimal igvIpmDng = 0,
         decimal valorAdqNg = 0,
-        decimal isc = 0,
-        decimal icbper = 0,
-        decimal otrosTribCargos = 0,
-        DateTime? fechaEmisionDocModif = null,
-        string? tipoCpModificado = null,
+        decimal montoIsc = 0,
+        decimal montoIcbper = 0,
+        decimal montoOtrosTributos = 0,
+        DateTime? fechaEmisionDocModificado = null,
+        string? codigoTipoCpModificado = null,
         string? serieCpModificado = null,
-        string? nroCpModificado = null,
         string? codDamDsi = null,
+        string? numeroCpModificado = null,
         string? clasifBssSss = null,
         string? idProyectoOp = null,
         decimal? porcPart = null,
-        decimal? imb = null,
+        decimal imb = 0,
         string? carOrigIndEI = null,
         string? detraccion = null,
         string? codigoTipoNota = null,
         string? incal = null,
         string? camposLibres = null)
     {
-        return new Compra
+        return new CompraSire
         {
             IdCompra = Guid.NewGuid(),
             IdCarga = idCarga,
             EmpresaRuc = empresaRuc,
             Periodo = periodo,
+            NumeroLinea = numeroLinea,
             CarSunat = carSunat,
+            FechaEmision = fechaEmision,
+            FechaVencimiento = fechaVencimiento,
             CodigoTipoCp = codigoTipoCp,
             Serie = serie,
+            AnioDocumento = anioDocumento,
             Numero = numero,
             NumeroFinal = numeroFinal,
-            AnioDocumento = anioDocumento,
-            FechaEmision = fechaEmision,
-            FechaVctoPago = fechaVctoPago,
             CodigoTipoDocIdentidad = codigoTipoDocIdentidad,
             NroDocIdentidad = nroDocIdentidad,
             RazonSocial = razonSocial,
@@ -126,17 +132,17 @@ public class Compra : EntidadAuditoria
             BiGravadoDng = biGravadoDng,
             IgvIpmDng = igvIpmDng,
             ValorAdqNg = valorAdqNg,
-            Isc = isc,
-            Icbper = icbper,
-            OtrosTribCargos = otrosTribCargos,
+            MontoIsc = montoIsc,
+            MontoIcbper = montoIcbper,
+            MontoOtrosTributos = montoOtrosTributos,
             TotalCp = totalCp,
             CodigoMoneda = codigoMoneda,
             TipoCambio = tipoCambio,
-            FechaEmisionDocModif = fechaEmisionDocModif,
-            TipoCpModificado = tipoCpModificado,
+            FechaEmisionDocModificado = fechaEmisionDocModificado,
+            CodigoTipoCpModificado = codigoTipoCpModificado,
             SerieCpModificado = serieCpModificado,
-            NroCpModificado = nroCpModificado,
             CodDamDsi = codDamDsi,
+            NumeroCpModificado = numeroCpModificado,
             ClasifBssSss = clasifBssSss,
             IdProyectoOp = idProyectoOp,
             PorcPart = porcPart,
@@ -154,7 +160,7 @@ public class Compra : EntidadAuditoria
     }
 
     /// <summary>
-    /// Actualiza los campos editables del comprobante de compra (edición manual en el detalle).
+    /// Actualiza los campos editables del comprobante de compra SIRE (edición manual en el detalle).
     /// </summary>
     public void ActualizarDatos(
         string codigoTipoCp,
@@ -171,9 +177,15 @@ public class Compra : EntidadAuditoria
         decimal tipoCambio,
         string codigoEstadoComprobante,
         string? detraccion,
-        string carSunat,
-        string usuarioModificacion)
+        string? carSunat,
+        string usuarioModificacion,
+        string? empresaRuc = null)
     {
+        if (!string.IsNullOrWhiteSpace(empresaRuc))
+        {
+            EmpresaRuc = empresaRuc.Trim();
+        }
+
         CodigoTipoCp = codigoTipoCp;
         Serie = serie;
         Numero = numero;

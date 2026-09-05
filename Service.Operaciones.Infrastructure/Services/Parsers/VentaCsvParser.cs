@@ -115,10 +115,6 @@ public class VentaCsvParser : IArchivoSunatParser
     {
         var errores = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(c.GetValueOrDefault("car_sunat")))
-        {
-            errores.Add("car_sunat es obligatorio");
-        }
         if (string.IsNullOrWhiteSpace(c.GetValueOrDefault("tipo_cp")))
         {
             errores.Add("tipo_cp es obligatorio");

@@ -12,7 +12,7 @@ public class EliminarArchivoCargaCommandHandler : IRequestHandler<EliminarArchiv
     private readonly IArchivoCargaErrorRepository _archivoCargaErrorRepo;
     private readonly IVentaRepository _ventaRepo;
     private readonly IVentaEmpresaRepository _ventaEmpresaRepo;
-    private readonly ICompraRepository _compraRepo;
+    private readonly ICompraSireRepository _compraSireRepo;
     private readonly IVentaMatchRepository _ventaMatchRepo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<EliminarArchivoCargaCommandHandler> _logger;
@@ -23,7 +23,7 @@ public class EliminarArchivoCargaCommandHandler : IRequestHandler<EliminarArchiv
         IArchivoCargaErrorRepository archivoCargaErrorRepo,
         IVentaRepository ventaRepo,
         IVentaEmpresaRepository ventaEmpresaRepo,
-        ICompraRepository compraRepo,
+        ICompraSireRepository compraSireRepo,
         IVentaMatchRepository ventaMatchRepo,
         IUnitOfWork unitOfWork,
         ILogger<EliminarArchivoCargaCommandHandler> logger)
@@ -33,7 +33,7 @@ public class EliminarArchivoCargaCommandHandler : IRequestHandler<EliminarArchiv
         _archivoCargaErrorRepo = archivoCargaErrorRepo;
         _ventaRepo = ventaRepo;
         _ventaEmpresaRepo = ventaEmpresaRepo;
-        _compraRepo = compraRepo;
+        _compraSireRepo = compraSireRepo;
         _ventaMatchRepo = ventaMatchRepo;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -60,7 +60,7 @@ public class EliminarArchivoCargaCommandHandler : IRequestHandler<EliminarArchiv
             // 3. Eliminar comprobantes asociados (Ventas SIRE, Ventas Empresa, Compras, Ventas Match)
             await _ventaRepo.EliminarPorCargaFisicoAsync(request.IdCarga, cancellationToken);
             await _ventaEmpresaRepo.EliminarPorCargaFisicoAsync(request.IdCarga, cancellationToken);
-            await _compraRepo.EliminarPorCargaFisicoAsync(request.IdCarga, cancellationToken);
+            await _compraSireRepo.EliminarPorCargaFisicoAsync(request.IdCarga, cancellationToken);
             await _ventaMatchRepo.EliminarPorCargaFisicoAsync(request.IdCarga, cancellationToken);
 
             // 4. Eliminar el registro raíz de archivo_carga (Padre)

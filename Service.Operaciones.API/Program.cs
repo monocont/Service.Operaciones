@@ -94,7 +94,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IArchivoCargaRepository, ArchivoCargaRepository>();
 builder.Services.AddScoped<IArchivoCargaErrorRepository, ArchivoCargaErrorRepository>();
-builder.Services.AddScoped<ICompraRepository, CompraRepository>();
+builder.Services.AddScoped<ICompraSireRepository, CompraSireRepository>();
 builder.Services.AddScoped<IVentaRepository, VentaRepository>();
 builder.Services.AddScoped<IVentaEmpresaRepository, VentaEmpresaRepository>();
 builder.Services.AddScoped<IVentaMatchRepository, VentaMatchRepository>();
@@ -106,7 +106,7 @@ builder.Services.AddScoped<IUsuarioActualService, UsuarioActualService>();
 builder.Services.AddScoped<IAccesoEmpresaValidator, AccesoEmpresaValidator>();
 builder.Services.AddScoped<IArchivoSunatParserFactory, ArchivoSunatParserFactory>();
 builder.Services.AddScoped<IVentaValidationService, Service.Operaciones.Application.Services.VentaValidationService>();
-builder.Services.AddScoped<ICompraValidationService, Service.Operaciones.Application.Services.CompraValidationService>();
+builder.Services.AddScoped<ICompraSireValidationService, Service.Operaciones.Application.Services.CompraSireValidationService>();
 builder.Services.AddScoped<IVentaEmpresaParser, VentaEmpresaExcelParser>();
 builder.Services.AddScoped<IVentaEmpresaValidationService, Service.Operaciones.Application.Services.VentaEmpresaValidationService>();
 

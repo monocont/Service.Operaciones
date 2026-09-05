@@ -3,6 +3,8 @@ namespace Service.Operaciones.Application.DTOs.Compra;
 public class CompraDTO
 {
     public Guid IdCompra { get; set; }
+    public string EmpresaRuc { get; set; } = string.Empty;
+    public string Periodo { get; set; } = string.Empty;
     public string CarSunat { get; set; } = string.Empty;
     public string CodigoTipoCp { get; set; } = string.Empty;
     public string Serie { get; set; } = string.Empty;

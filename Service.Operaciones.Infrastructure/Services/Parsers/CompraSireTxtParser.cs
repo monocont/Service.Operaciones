@@ -3,29 +3,29 @@ using Service.Operaciones.Application.Interfaces;
 namespace Service.Operaciones.Infrastructure.Services.Parsers;
 
 /// <summary>
-/// Parser de archivo de Compras en formato TXT (delimitador pipe |).
-/// Layout oficial SUNAT: 80 columnas.
+/// Parser de archivo de Compras SIRE (RCE) en formato TXT (delimitador pipe |).
+/// Layout oficial SUNAT RCE: 41 columnas de negocio.
+/// Tolera y omite automáticamente columnas adicionales (CLU1 a CLU39).
 /// Encabezado en la primera línea: RUC|Apellidos y Nombres o Razón social|Periodo|CAR SUNAT|...
 /// </summary>
-public class CompraTxtParser : ArchivoSunatParserBase, IArchivoSunatParser
+public class CompraSireTxtParser : ArchivoSunatParserBase, IArchivoSunatParser
 {
     private static readonly string[] NombresColumnas = new[]
     {
         "ruc", "razon_social_empresa", "periodo", "car_sunat",
-        "fecha_emision", "fecha_vcto_pago", "tipo_cp", "serie", "anio_documento",
+        "fecha_emision", "fecha_vencimiento", "tipo_cp", "serie", "anio_documento",
         "numero", "numero_final", "tipo_doc_identidad", "nro_doc_identidad", "razon_social",
         "bi_gravado_dg", "igv_ipm_dg", "bi_gravado_dgng", "igv_ipm_dgng",
         "bi_gravado_dng", "igv_ipm_dng", "valor_adq_ng",
-        "isc", "icbper", "otros_trib_cargos", "total_cp",
+        "monto_isc", "monto_icbper", "monto_otros_tributos", "total_cp",
         "moneda", "tipo_cambio",
-        "fecha_emision_doc_modif", "tipo_cp_modificado", "serie_cp_modificado",
-        "cod_dam_dsi", "nro_cp_modificado", "clasif_bss_sss",
+        "fecha_emision_doc_modificado", "tipo_cp_modificado", "serie_cp_modificado",
+        "cod_dam_dsi", "numero_cp_modificado", "clasif_bss_sss",
         "id_proyecto_op", "porc_part", "imb", "car_orig_ind_e_i", "detraccion",
         "tipo_nota", "estado_comprobante", "incal"
-        // Nota: CLU1-CLU40 omitidos en el mapeo (se guardan como null por simplicidad)
     };
 
-    public CompraTxtParser()
+    public CompraSireTxtParser()
     {
         Delimitador = '|';
     }
@@ -49,7 +49,7 @@ public class CompraTxtParser : ArchivoSunatParserBase, IArchivoSunatParser
                 continue;
             }
 
-            // Saltar encabezado (primera línea válida)
+            // Saltar encabezado
             if (esEncabezado && EsEncabezado(linea))
             {
                 esEncabezado = false;
@@ -59,7 +59,7 @@ public class CompraTxtParser : ArchivoSunatParserBase, IArchivoSunatParser
 
             var campos = DividirLinea(linea);
 
-            if (campos.Length < 25) // Mínimo de columnas obligatorias aprox
+            if (campos.Length < 25)
             {
                 resultados.Add(new ResultadoParseoLinea
                 {
@@ -71,17 +71,20 @@ public class CompraTxtParser : ArchivoSunatParserBase, IArchivoSunatParser
             }
 
             var diccionario = new Dictionary<string, string>();
-            for (var i = 0; i < Math.Min(campos.Length, NombresColumnas.Length); i++)
+            // Mapear solo hasta 41 columnas oficiales (omite CLU1..39 de forma transparente)
+            var limiteColumnas = Math.Min(campos.Length, NombresColumnas.Length);
+            for (var i = 0; i < limiteColumnas; i++)
             {
                 diccionario[NombresColumnas[i]] = Limpiar(campos[i]) ?? string.Empty;
             }
-            // Agregar campos restantes en caso de existir más allá de las columnas mapeadas
-            if (campos.Length > NombresColumnas.Length)
+
+            // Fallback para estado de comprobante si no viniera
+            if (!diccionario.ContainsKey("estado_comprobante") || string.IsNullOrWhiteSpace(diccionario["estado_comprobante"]))
             {
-                // Los CLU1-CLU40 se ignoran en el mapeo, pero no rompen
+                diccionario["estado_comprobante"] = "1";
             }
 
-            // Validar campos obligatorios
+            // Validar campos obligatorios mínimos del archivo
             var errores = ValidarCamposObligatorios(diccionario);
             if (errores.Count > 0)
             {
@@ -107,9 +110,8 @@ public class CompraTxtParser : ArchivoSunatParserBase, IArchivoSunatParser
 
     private static bool EsEncabezado(string linea)
     {
-        // El encabezado typically contiene texto como "RUC|Apellidos"
-        // Verificamos que no comience con dígitos de RUC válidos
-        var primeraColumna = linea.Split('|')[0];
+        var primeraColumna = linea.Split('|')[0].Trim();
+        // Si no son 11 dígitos de RUC, es cabecera
         return !primeraColumna.All(char.IsDigit) || primeraColumna.Length != 11;
     }
 
@@ -117,10 +119,6 @@ public class CompraTxtParser : ArchivoSunatParserBase, IArchivoSunatParser
     {
         var errores = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(c.GetValueOrDefault("car_sunat")))
-        {
-            errores.Add("car_sunat es obligatorio");
-        }
         if (string.IsNullOrWhiteSpace(c.GetValueOrDefault("tipo_cp")))
         {
             errores.Add("tipo_cp es obligatorio");

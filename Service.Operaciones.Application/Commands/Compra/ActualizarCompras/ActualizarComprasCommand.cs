@@ -13,6 +13,8 @@ public record ActualizarComprasCommand : IRequest<ActualizarComprasResponseDTO>
 
 public class CrearCompraRegistroDTO
 {
+    public string? EmpresaRuc { get; set; }
+    public string? Periodo { get; set; }
     public string? CodigoTipoCp { get; set; }
     public string? Serie { get; set; }
     public string? Numero { get; set; }
@@ -33,6 +35,8 @@ public class CrearCompraRegistroDTO
 public class ModificarCompraRegistroDTO
 {
     public Guid IdCompra { get; set; }
+    public string? EmpresaRuc { get; set; }
+    public string? Periodo { get; set; }
     public string? CodigoTipoCp { get; set; }
     public string? Serie { get; set; }
     public string? Numero { get; set; }

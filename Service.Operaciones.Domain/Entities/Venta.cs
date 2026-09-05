@@ -8,7 +8,7 @@ public class Venta : EntidadAuditoria
     public string Periodo { get; private set; } = string.Empty;
     public int NumeroLinea { get; private set; }
 
-    public string CarSunat { get; private set; } = string.Empty;
+    public string? CarSunat { get; private set; }
     public string CodigoTipoCp { get; private set; } = string.Empty;
     public string Serie { get; private set; } = string.Empty;
     public string Numero { get; private set; } = string.Empty;
@@ -58,7 +58,6 @@ public class Venta : EntidadAuditoria
         string empresaRuc,
         string periodo,
         Guid idCarga,
-        string carSunat,
         string codigoTipoCp,
         string serie,
         string numero,
@@ -71,6 +70,7 @@ public class Venta : EntidadAuditoria
         decimal tipoCambio,
         string codigoEstadoComprobante,
         string usuarioCreacion,
+        string? carSunat = null,
         int numeroLinea = 1,
         string? numeroFinal = null,
         DateTime? fechaVctoPago = null,
@@ -162,7 +162,7 @@ public class Venta : EntidadAuditoria
         string codigoMoneda,
         decimal tipoCambio,
         string codigoEstadoComprobante,
-        string carSunat,
+        string? carSunat,
         string usuarioModificacion)
     {
         CodigoTipoCp = codigoTipoCp;

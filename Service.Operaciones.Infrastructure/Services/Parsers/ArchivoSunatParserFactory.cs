@@ -9,8 +9,8 @@ public class ArchivoSunatParserFactory : IArchivoSunatParserFactory
     {
         return (tipoOperacion, formato) switch
         {
-            (TipoOperacion.CompraSire, FormatoArchivo.Txt) => new CompraTxtParser(),
-            (TipoOperacion.CompraSire, FormatoArchivo.Csv) => new CompraCsvParser(),
+            (TipoOperacion.CompraSire, FormatoArchivo.Txt) => new CompraSireTxtParser(),
+            (TipoOperacion.CompraSire, FormatoArchivo.Csv) => new CompraSireCsvParser(),
             (TipoOperacion.VentaSire, FormatoArchivo.Txt) => new VentaTxtParser(),
             (TipoOperacion.VentaSire, FormatoArchivo.Csv) => new VentaCsvParser(),
             _ => throw new ArgumentException($"No existe parser para combinación {tipoOperacion}/{formato}")

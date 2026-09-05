@@ -2,12 +2,12 @@ using Service.Operaciones.Domain.Entities;
 
 namespace Service.Operaciones.Application.Interfaces;
 
-public interface ICompraValidationService
+public interface ICompraSireValidationService
 {
-    Task<List<ArchivoCargaError>> ValidarComprasAsync(
+    Task<List<ArchivoCargaError>> ValidarComprasSireAsync(
         Guid idCarga,
         string empresaRuc,
         string periodo,
-        List<Compra> compras,
+        List<CompraSire> compras,
         CancellationToken cancellationToken);
 }

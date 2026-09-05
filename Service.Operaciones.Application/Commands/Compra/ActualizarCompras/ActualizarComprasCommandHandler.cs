@@ -2,20 +2,21 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using Service.Operaciones.Application.Common.Exceptions;
 using Service.Operaciones.Application.Interfaces;
+using Service.Operaciones.Domain.Entities;
 
 namespace Service.Operaciones.Application.Commands.Compra.ActualizarCompras;
 
 /// <summary>
 /// Aplica cambios manuales (altas/bajas/modificaciones) sobre los comprobantes
-/// de una carga de compras existente: transaccional, con autorización multi-tenant,
+/// de una carga de compras SIRE existente: transaccional, con autorización multi-tenant,
 /// revalidación de observaciones y recálculo de conteos/totales.
 /// </summary>
 public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarComprasCommand, ActualizarComprasResponseDTO>
 {
     private readonly IArchivoCargaRepository _archivoCargaRepo;
     private readonly IArchivoCargaErrorRepository _archivoCargaErrorRepo;
-    private readonly ICompraRepository _compraRepo;
-    private readonly ICompraValidationService _compraValidationService;
+    private readonly ICompraSireRepository _compraSireRepo;
+    private readonly ICompraSireValidationService _compraValidationService;
     private readonly IAccesoEmpresaValidator _accesoValidator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ActualizarComprasCommandHandler> _logger;
@@ -23,15 +24,15 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
     public ActualizarComprasCommandHandler(
         IArchivoCargaRepository archivoCargaRepo,
         IArchivoCargaErrorRepository archivoCargaErrorRepo,
-        ICompraRepository compraRepo,
-        ICompraValidationService compraValidationService,
+        ICompraSireRepository compraSireRepo,
+        ICompraSireValidationService compraValidationService,
         IAccesoEmpresaValidator accesoValidator,
         IUnitOfWork unitOfWork,
         ILogger<ActualizarComprasCommandHandler> logger)
     {
         _archivoCargaRepo = archivoCargaRepo;
         _archivoCargaErrorRepo = archivoCargaErrorRepo;
-        _compraRepo = compraRepo;
+        _compraSireRepo = compraSireRepo;
         _compraValidationService = compraValidationService;
         _accesoValidator = accesoValidator;
         _unitOfWork = unitOfWork;
@@ -40,7 +41,7 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
 
     public async Task<ActualizarComprasResponseDTO> Handle(ActualizarComprasCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Iniciando actualización de compras para carga {IdCarga}. Eliminados: {Count}",
+        _logger.LogInformation("Iniciando actualización de compras SIRE para carga {IdCarga}. Eliminados: {Count}",
             request.IdCarga, request.EliminadosIds?.Count ?? 0);
 
         // 1. Obtener la carga correspondiente
@@ -61,14 +62,16 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
             // 3. Eliminar comprobantes físicamente de la base de datos
             if (request.EliminadosIds != null && request.EliminadosIds.Count > 0)
             {
-                await _compraRepo.EliminarRangoFisicoAsync(request.EliminadosIds, cancellationToken);
+                await _compraSireRepo.EliminarRangoFisicoAsync(request.EliminadosIds, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
 
             // 3.1 Agregar nuevos comprobantes validados
             if (request.Nuevos != null && request.Nuevos.Count > 0)
             {
-                var comprasNuevas = new List<Service.Operaciones.Domain.Entities.Compra>();
+                var comprasNuevas = new List<CompraSire>();
+                var lineaActual = 1;
+
                 foreach (var n in request.Nuevos)
                 {
                     if (!n.FechaEmision.HasValue)
@@ -90,20 +93,18 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
                     var tipoCambio = (n.TipoCambio.HasValue && n.TipoCambio.Value > 0) ? n.TipoCambio.Value : 1.0000m;
                     var estadoCp = string.IsNullOrWhiteSpace(n.CodigoEstadoComprobante) ? "1" : n.CodigoEstadoComprobante.Trim();
 
-                    // Generar CAR SUNAT si no viene provisto (RUC + Tipo + Serie + Numero)
-                    var carSunat = !string.IsNullOrWhiteSpace(n.CarSunat)
-                        ? n.CarSunat.Trim()
-                        : $"{carga.EmpresaRuc}{n.CodigoTipoCp.Trim()}{n.Serie.Trim().PadLeft(4, '0')}{n.Numero.Trim().PadLeft(8, '0')}";
+                    // Guardar CAR SUNAT si viene provisto, de lo contrario null
+                    var carSunat = !string.IsNullOrWhiteSpace(n.CarSunat) ? n.CarSunat.Trim() : null;
 
-                    var nuevaCompra = Service.Operaciones.Domain.Entities.Compra.Crear(
-                        empresaRuc: carga.EmpresaRuc,
-                        periodo: carga.Periodo,
+                    var nuevaCompra = CompraSire.Crear(
+                        empresaRuc: !string.IsNullOrWhiteSpace(n.EmpresaRuc) ? n.EmpresaRuc.Trim() : carga.EmpresaRuc,
+                        periodo: !string.IsNullOrWhiteSpace(n.Periodo) ? n.Periodo.Trim() : carga.Periodo,
                         idCarga: carga.IdCarga,
-                        carSunat: carSunat,
+                        numeroLinea: lineaActual++,
+                        fechaEmision: n.FechaEmision.Value,
                         codigoTipoCp: n.CodigoTipoCp.Trim(),
                         serie: n.Serie.Trim().ToUpper(),
                         numero: n.Numero.Trim(),
-                        fechaEmision: n.FechaEmision.Value,
                         codigoTipoDocIdentidad: n.CodigoTipoDocIdentidad.Trim(),
                         nroDocIdentidad: n.NroDocIdentidad.Trim(),
                         razonSocial: n.RazonSocial.Trim().ToUpper(),
@@ -112,6 +113,7 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
                         tipoCambio: tipoCambio,
                         codigoEstadoComprobante: estadoCp,
                         usuarioCreacion: request.Usuario ?? "sistema",
+                        carSunat: carSunat,
                         biGravadoDg: n.BiGravadoDg,
                         igvIpmDg: n.IgvIpmDg,
                         detraccion: string.IsNullOrWhiteSpace(n.Detraccion) ? null : n.Detraccion.Trim());
@@ -119,7 +121,7 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
                     comprasNuevas.Add(nuevaCompra);
                 }
 
-                await _compraRepo.AgregarRangoAsync(comprasNuevas, cancellationToken);
+                await _compraSireRepo.AgregarRangoAsync(comprasNuevas, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
 
@@ -127,7 +129,7 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
             if (request.Modificados != null && request.Modificados.Count > 0)
             {
                 var idsModificados = request.Modificados.Select(m => m.IdCompra).ToList();
-                var comprasExistentes = await _compraRepo.ObtenerPorIdsAsync(idsModificados, cancellationToken);
+                var comprasExistentes = await _compraSireRepo.ObtenerPorIdsAsync(idsModificados, cancellationToken);
                 var dictExistentes = comprasExistentes.ToDictionary(c => c.IdCompra);
 
                 foreach (var m in request.Modificados)
@@ -156,10 +158,8 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
                     var tipoCambio = (m.TipoCambio.HasValue && m.TipoCambio.Value > 0) ? m.TipoCambio.Value : 1.0000m;
                     var estadoCp = string.IsNullOrWhiteSpace(m.CodigoEstadoComprobante) ? "1" : m.CodigoEstadoComprobante.Trim();
 
-                    // Recalcular CAR SUNAT si no viene provisto o si cambiaron sus componentes
-                    var carSunat = !string.IsNullOrWhiteSpace(m.CarSunat)
-                        ? m.CarSunat.Trim()
-                        : $"{carga.EmpresaRuc}{m.CodigoTipoCp.Trim()}{m.Serie.Trim().PadLeft(4, '0')}{m.Numero.Trim().PadLeft(8, '0')}";
+                    // Guardar CAR SUNAT si viene provisto, de lo contrario null
+                    var carSunat = !string.IsNullOrWhiteSpace(m.CarSunat) ? m.CarSunat.Trim() : null;
 
                     compraExistente.ActualizarDatos(
                         codigoTipoCp: m.CodigoTipoCp.Trim(),
@@ -177,17 +177,18 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
                         codigoEstadoComprobante: estadoCp,
                         detraccion: string.IsNullOrWhiteSpace(m.Detraccion) ? null : m.Detraccion.Trim(),
                         carSunat: carSunat,
-                        usuarioModificacion: request.Usuario ?? "sistema");
+                        usuarioModificacion: request.Usuario ?? "sistema",
+                        empresaRuc: !string.IsNullOrWhiteSpace(m.EmpresaRuc) ? m.EmpresaRuc.Trim() : null);
                 }
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
 
             // 4. Obtener los comprobantes restantes de la carga
-            var comprasRestantes = await _compraRepo.ListarPorCargaAsync(request.IdCarga, cancellationToken);
+            var comprasRestantes = await _compraSireRepo.ListarPorCargaAsync(request.IdCarga, cancellationToken);
 
             // 5. Re-validar los comprobantes restantes
-            var nuevosErrores = await _compraValidationService.ValidarComprasAsync(
+            var nuevosErrores = await _compraValidationService.ValidarComprasSireAsync(
                 request.IdCarga,
                 carga.EmpresaRuc,
                 carga.Periodo,
@@ -208,8 +209,8 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
             var totalObservaciones = nuevosErrores.Count;
             var totalValidos = Math.Max(0, totalRestantes - totalObservaciones);
 
-            var totalBiRestantes = comprasRestantes.Sum(c => c.BiGravadoDg);
-            var totalIgvRestantes = comprasRestantes.Sum(c => c.IgvIpmDg);
+            var totalBiRestantes = comprasRestantes.Sum(c => c.BiGravadoDg + c.BiGravadoDgng + c.BiGravadoDng);
+            var totalIgvRestantes = comprasRestantes.Sum(c => c.IgvIpmDg + c.IgvIpmDgng + c.IgvIpmDng);
             var totalGenRestantes = comprasRestantes.Sum(c => c.TotalCp);
 
             carga.ActualizarConteoYMontos(totalRestantes, totalValidos, totalObservaciones, totalBiRestantes, totalIgvRestantes, totalGenRestantes);
@@ -223,7 +224,7 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
             // 8. Commit transacción en UnitOfWork
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-            _logger.LogInformation("Actualización de compras para carga {IdCarga} completada. Restantes: {Count}, Observaciones: {Obs}",
+            _logger.LogInformation("Actualización de compras SIRE para carga {IdCarga} completada. Restantes: {Count}, Observaciones: {Obs}",
                 request.IdCarga, comprasRestantes.Count, nuevosErrores.Count);
 
             return new ActualizarComprasResponseDTO
@@ -236,7 +237,7 @@ public class ActualizarComprasCommandHandler : IRequestHandler<ActualizarCompras
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al actualizar compras de carga {IdCarga}. Ejecutando Rollback.", request.IdCarga);
+            _logger.LogError(ex, "Error al actualizar compras SIRE de carga {IdCarga}. Ejecutando Rollback.", request.IdCarga);
             await _unitOfWork.RollbackTransactionAsync(cancellationToken);
             throw;
         }

@@ -1,5 +1,4 @@
 using MediatR;
-using CompraEntidad = Service.Operaciones.Domain.Entities.Compra;
 using Microsoft.Extensions.Logging;
 using Service.Operaciones.Application.Common.Exceptions;
 using Service.Operaciones.Application.DTOs.Carga;
@@ -13,11 +12,12 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
 {
     private readonly IArchivoCargaRepository _archivoCargaRepo;
     private readonly IArchivoCargaErrorRepository _archivoCargaErrorRepo;
-    private readonly ICompraRepository _compraRepo;
+    private readonly ICompraSireRepository _compraSireRepo;
     private readonly IEmpresaService _empresaService;
     private readonly IAccesoEmpresaValidator _accesoValidator;
     private readonly IHashService _hashService;
     private readonly IArchivoSunatParserFactory _parserFactory;
+    private readonly ICompraSireValidationService _compraValidationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CargarArchivoComprasCommandHandler> _logger;
 
@@ -26,28 +26,30 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
     public CargarArchivoComprasCommandHandler(
         IArchivoCargaRepository archivoCargaRepo,
         IArchivoCargaErrorRepository archivoCargaErrorRepo,
-        ICompraRepository compraRepo,
+        ICompraSireRepository compraSireRepo,
         IEmpresaService empresaService,
         IAccesoEmpresaValidator accesoValidator,
         IHashService hashService,
         IArchivoSunatParserFactory parserFactory,
+        ICompraSireValidationService compraValidationService,
         IUnitOfWork unitOfWork,
         ILogger<CargarArchivoComprasCommandHandler> logger)
     {
         _archivoCargaRepo = archivoCargaRepo;
         _archivoCargaErrorRepo = archivoCargaErrorRepo;
-        _compraRepo = compraRepo;
+        _compraSireRepo = compraSireRepo;
         _empresaService = empresaService;
         _accesoValidator = accesoValidator;
         _hashService = hashService;
         _parserFactory = parserFactory;
+        _compraValidationService = compraValidationService;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
     public async Task<CargarArchivoSunatDTO> Handle(CargarArchivoComprasCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Iniciando carga de archivo COMPRAS. Empresa: {EmpresaRuc}, Periodo: {Periodo}",
+        _logger.LogInformation("Iniciando carga de archivo COMPRAS SIRE. Empresa: {EmpresaRuc}, Periodo: {Periodo}",
             request.EmpresaRuc, request.Periodo);
 
         // 1. Validar empresa y acceso del usuario (multi-tenant)
@@ -117,117 +119,38 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error crítico al parsear archivo de compras: {Message}", ex.Message);
+                _logger.LogError(ex, "Error crítico al parsear archivo de compras SIRE: {Message}", ex.Message);
                 throw;
             }
 
-            // 7. Procesar cada linea
-            var errores = new List<ArchivoCargaError>();
-            var compras = new List<CompraEntidad>();
-            var lineasValidas = new List<Dictionary<string, string>>();
-            var carSunatsVistos = new HashSet<string>();
-            var validosCount = 0;
-            var erroresCount = 0;
-
-            var anioPeriodo = int.Parse(request.Periodo[..4]);
-            var mesPeriodo = int.Parse(request.Periodo[4..]);
+            // 7. Instanciar el 100% de los comprobantes como entidades CompraSire
+            var compras = new List<CompraSire>();
 
             foreach (var resultado in resultados)
             {
-                if (!resultado.EsValido)
-                {
-                    errores.Add(ArchivoCargaError.Crear(
-                        archivoCarga.IdCarga, resultado.NumeroLinea,
-                        TipoErrorCarga.Formato, resultado.MensajeError ?? "Error de formato"));
-                    erroresCount++;
-                    continue;
-                }
-
-                // Validar RUC del archivo contra empresa seleccionada
-                var rucArchivo = resultado.Campos.GetValueOrDefault("ruc") ?? string.Empty;
-                if (rucArchivo != request.EmpresaRuc)
-                {
-                    errores.Add(ArchivoCargaError.Crear(
-                        archivoCarga.IdCarga, resultado.NumeroLinea,
-                        TipoErrorCarga.Negocio,
-                        $"El RUC del archivo ({rucArchivo}) no coincide con la empresa seleccionada ({request.EmpresaRuc})",
-                        "ruc", rucArchivo));
-                    erroresCount++;
-                    continue;
-                }
-
-                // Validar periodo: fecha_emision dentro del mes/año indicado
-                if (DateTime.TryParse(resultado.Campos.GetValueOrDefault("fecha_emision"), out var fechaEmision))
-                {
-                    if (fechaEmision.Year != anioPeriodo || fechaEmision.Month != mesPeriodo)
-                    {
-                        errores.Add(ArchivoCargaError.Crear(
-                            archivoCarga.IdCarga, resultado.NumeroLinea,
-                            TipoErrorCarga.Negocio,
-                            $"La fecha de emision {fechaEmision:dd/MM/yyyy} no pertenece al periodo {request.Periodo}",
-                            "fecha_emision", fechaEmision.ToString("dd/MM/yyyy")));
-                        erroresCount++;
-                        continue;
-                    }
-                }
-
-                // Verificar duplicado car_sunat en BD
-                var carSunat = resultado.Campos.GetValueOrDefault("car_sunat") ?? string.Empty;
-                if (await _compraRepo.ExistePorCarSunatAsync(request.EmpresaRuc, request.Periodo, carSunat, cancellationToken))
-                {
-                    errores.Add(ArchivoCargaError.Crear(
-                        archivoCarga.IdCarga, resultado.NumeroLinea,
-                        TipoErrorCarga.Duplicado,
-                        $"El comprobante con CAR_SUNAT '{carSunat}' ya existe en la base de datos",
-                        "car_sunat", carSunat));
-                    erroresCount++;
-                    continue;
-                }
-
-                // Verificar duplicado car_sunat DENTRO del archivo
-                if (!carSunatsVistos.Add(carSunat))
-                {
-                    errores.Add(ArchivoCargaError.Crear(
-                        archivoCarga.IdCarga, resultado.NumeroLinea,
-                        TipoErrorCarga.Duplicado,
-                        $"El comprobante con CAR_SUNAT '{carSunat}' aparece duplicado dentro del archivo",
-                        "car_sunat", carSunat));
-                    erroresCount++;
-                    continue;
-                }
-
-                // Construir Compra
                 try
                 {
-                    var compra = ConstruirCompra(resultado.Campos, request.EmpresaRuc, request.Periodo, archivoCarga.IdCarga, request.Usuario);
+                    var compra = ConstruirCompra(resultado.NumeroLinea, resultado.Campos, request.EmpresaRuc, request.Periodo, archivoCarga.IdCarga, request.Usuario);
                     compras.Add(compra);
-                    lineasValidas.Add(resultado.Campos);
-                    validosCount++;
                 }
                 catch (Exception ex)
                 {
-                    errores.Add(ArchivoCargaError.Crear(
-                        archivoCarga.IdCarga, resultado.NumeroLinea,
-                        TipoErrorCarga.Negocio, $"Error al construir entidad: {ex.Message}",
-                        severidad: SeveridadError.Error));
-                    erroresCount++;
+                    _logger.LogWarning(ex, "Error al instanciar entidad CompraSire en línea {Linea}: {Message}", resultado.NumeroLinea, ex.Message);
                 }
             }
 
-            // 8. Validar series consecutivas (advertencias, no bloquean)
-            var advertenciasSecuencia = ValidarSeriesConsecutivas(lineasValidas);
-            foreach (var advertencia in advertenciasSecuencia)
-            {
-                errores.Add(ArchivoCargaError.Crear(
-                    archivoCarga.IdCarga, 0,
-                    TipoErrorCarga.Secuencia, advertencia,
-                    severidad: SeveridadError.Advertencia));
-            }
+            // 7.1 Ejecutar TODAS las validaciones de negocio de forma centralizada a través de ICompraSireValidationService
+            var errores = await _compraValidationService.ValidarComprasSireAsync(
+                archivoCarga.IdCarga,
+                request.EmpresaRuc,
+                request.Periodo,
+                compras,
+                cancellationToken);
 
-            // 9. Persistir TODO dentro de la transacción del Unit of Work
+            // 8. Persistir TODO dentro de la transacción del Unit of Work
             if (compras.Count > 0)
             {
-                await _compraRepo.AgregarRangoAsync(compras, cancellationToken);
+                await _compraSireRepo.AgregarRangoAsync(compras, cancellationToken);
             }
 
             if (errores.Count > 0)
@@ -239,14 +162,14 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
             var totalIgvCompras = compras.Sum(c => c.IgvIpmDg + c.IgvIpmDgng + c.IgvIpmDng);
             var totalGenCompras = compras.Sum(c => c.TotalCp);
 
-            archivoCarga.ActualizarConteoYMontos(resultados.Count, validosCount, erroresCount, totalBiCompras, totalIgvCompras, totalGenCompras);
+            archivoCarga.ActualizarConteoYMontos(resultados.Count, compras.Count, errores.Count, totalBiCompras, totalIgvCompras, totalGenCompras);
             await _archivoCargaRepo.ActualizarAsync(archivoCarga, cancellationToken);
 
             // Guardar cambios y confirmar transacción atómicamente
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
 
-            _logger.LogInformation("Carga COMPRAS completada exitosamente con UoW. IdCarga: {IdCarga}, Total: {Total}, Validos: {Validos}, Errores: {Errores}",
-                archivoCarga.IdCarga, resultados.Count, validosCount, erroresCount);
+            _logger.LogInformation("Carga COMPRAS SIRE completada exitosamente. IdCarga: {IdCarga}, Total: {Total}, Insertados: {Insertados}, Errores/Alertas: {Errores}, TotalGeneral: {TotalGeneral}",
+                archivoCarga.IdCarga, resultados.Count, compras.Count, errores.Count, totalGenCompras);
 
             return new CargarArchivoSunatDTO
             {
@@ -268,59 +191,27 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Excepción durante la carga de compras. Ejecutando Rollback en UnitOfWork.");
+            _logger.LogError(ex, "Excepción durante la carga de compras SIRE. Ejecutando Rollback en UnitOfWork.");
             await _unitOfWork.RollbackTransactionAsync(cancellationToken);
             throw;
         }
     }
 
-    private static List<string> ValidarSeriesConsecutivas(List<Dictionary<string, string>> lineas)
+    private static CompraSire ConstruirCompra(int numeroLinea, Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
     {
-        var advertencias = new List<string>();
+        var rucFila = c.GetValueOrDefault("ruc");
+        var periodoFila = c.GetValueOrDefault("periodo");
 
-        var porSerie = lineas
-            .GroupBy(l => l.GetValueOrDefault("serie") ?? string.Empty)
-            .Where(g => g.Key.Length > 0);
-
-        foreach (var grupo in porSerie)
-        {
-            var numeros = grupo
-                .Select(l => l.GetValueOrDefault("numero") ?? string.Empty)
-                .Where(n => int.TryParse(n, out _))
-                .Select(int.Parse)
-                .OrderBy(n => n)
-                .ToList();
-
-            if (numeros.Count < 2)
-            {
-                continue;
-            }
-
-            for (var i = 1; i < numeros.Count; i++)
-            {
-                var salto = numeros[i] - numeros[i - 1];
-                if (salto > 1)
-                {
-                    advertencias.Add(
-                        $"Serie {grupo.Key}: salto entre {numeros[i - 1]} y {numeros[i]} (faltan {salto - 1} numeros)");
-                }
-            }
-        }
-
-        return advertencias;
-    }
-
-    private static CompraEntidad ConstruirCompra(Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
-    {
-        return CompraEntidad.Crear(
-            empresaRuc: empresaRuc,
-            periodo: periodo,
+        return CompraSire.Crear(
+            empresaRuc: !string.IsNullOrWhiteSpace(rucFila) ? rucFila.Trim() : empresaRuc,
+            periodo: !string.IsNullOrWhiteSpace(periodoFila) ? periodoFila.Trim() : periodo,
             idCarga: idCarga,
-            carSunat: c.GetValueOrDefault("car_sunat") ?? string.Empty,
+            numeroLinea: numeroLinea,
+            carSunat: !string.IsNullOrWhiteSpace(c.GetValueOrDefault("car_sunat")) ? c["car_sunat"].Trim() : null,
+            fechaEmision: DateTime.TryParse(c.GetValueOrDefault("fecha_emision"), out var fe) ? fe : DateTime.UtcNow,
             codigoTipoCp: c.GetValueOrDefault("tipo_cp") ?? string.Empty,
             serie: c.GetValueOrDefault("serie") ?? string.Empty,
             numero: c.GetValueOrDefault("numero") ?? string.Empty,
-            fechaEmision: DateTime.TryParse(c.GetValueOrDefault("fecha_emision"), out var fe) ? fe : DateTime.UtcNow,
             codigoTipoDocIdentidad: c.GetValueOrDefault("tipo_doc_identidad") ?? "6",
             nroDocIdentidad: c.GetValueOrDefault("nro_doc_identidad") ?? string.Empty,
             razonSocial: c.GetValueOrDefault("razon_social") ?? string.Empty,
@@ -329,9 +220,9 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
             tipoCambio: decimal.TryParse(c.GetValueOrDefault("tipo_cambio"), out var tca) ? tca : 1.0000m,
             codigoEstadoComprobante: c.GetValueOrDefault("estado_comprobante") ?? "1",
             usuarioCreacion: usuario,
-            numeroFinal: string.IsNullOrEmpty(c.GetValueOrDefault("numero_final")) ? null : c.GetValueOrDefault("numero_final"),
+            fechaVencimiento: DateTime.TryParse(c.GetValueOrDefault("fecha_vencimiento"), out var fv) ? fv : null,
             anioDocumento: string.IsNullOrEmpty(c.GetValueOrDefault("anio_documento")) ? null : c.GetValueOrDefault("anio_documento"),
-            fechaVctoPago: DateTime.TryParse(c.GetValueOrDefault("fecha_vcto_pago"), out var fv) ? fv : null,
+            numeroFinal: string.IsNullOrEmpty(c.GetValueOrDefault("numero_final")) ? null : c.GetValueOrDefault("numero_final"),
             biGravadoDg: decimal.TryParse(c.GetValueOrDefault("bi_gravado_dg"), out var bg1) ? bg1 : 0,
             igvIpmDg: decimal.TryParse(c.GetValueOrDefault("igv_ipm_dg"), out var ig1) ? ig1 : 0,
             biGravadoDgng: decimal.TryParse(c.GetValueOrDefault("bi_gravado_dgng"), out var bg2) ? bg2 : 0,
@@ -339,22 +230,23 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
             biGravadoDng: decimal.TryParse(c.GetValueOrDefault("bi_gravado_dng"), out var bg3) ? bg3 : 0,
             igvIpmDng: decimal.TryParse(c.GetValueOrDefault("igv_ipm_dng"), out var ig3) ? ig3 : 0,
             valorAdqNg: decimal.TryParse(c.GetValueOrDefault("valor_adq_ng"), out var vn) ? vn : 0,
-            isc: decimal.TryParse(c.GetValueOrDefault("isc"), out var isc) ? isc : 0,
-            icbper: decimal.TryParse(c.GetValueOrDefault("icbper"), out var icb) ? icb : 0,
-            otrosTribCargos: decimal.TryParse(c.GetValueOrDefault("otros_trib_cargos"), out var otc) ? otc : 0,
-            fechaEmisionDocModif: DateTime.TryParse(c.GetValueOrDefault("fecha_emision_doc_modif"), out var fem) ? fem : null,
-            tipoCpModificado: string.IsNullOrEmpty(c.GetValueOrDefault("tipo_cp_modificado")) ? null : c.GetValueOrDefault("tipo_cp_modificado"),
+            montoIsc: decimal.TryParse(c.GetValueOrDefault("monto_isc"), out var isc) ? isc : 0,
+            montoIcbper: decimal.TryParse(c.GetValueOrDefault("monto_icbper"), out var icb) ? icb : 0,
+            montoOtrosTributos: decimal.TryParse(c.GetValueOrDefault("monto_otros_tributos"), out var otc) ? otc : 0,
+            fechaEmisionDocModificado: DateTime.TryParse(c.GetValueOrDefault("fecha_emision_doc_modificado"), out var fem) ? fem : null,
+            codigoTipoCpModificado: string.IsNullOrEmpty(c.GetValueOrDefault("tipo_cp_modificado")) ? null : c.GetValueOrDefault("tipo_cp_modificado"),
             serieCpModificado: string.IsNullOrEmpty(c.GetValueOrDefault("serie_cp_modificado")) ? null : c.GetValueOrDefault("serie_cp_modificado"),
-            nroCpModificado: string.IsNullOrEmpty(c.GetValueOrDefault("nro_cp_modificado")) ? null : c.GetValueOrDefault("nro_cp_modificado"),
             codDamDsi: string.IsNullOrEmpty(c.GetValueOrDefault("cod_dam_dsi")) ? null : c.GetValueOrDefault("cod_dam_dsi"),
+            numeroCpModificado: string.IsNullOrEmpty(c.GetValueOrDefault("numero_cp_modificado")) ? null : c.GetValueOrDefault("numero_cp_modificado"),
             clasifBssSss: string.IsNullOrEmpty(c.GetValueOrDefault("clasif_bss_sss")) ? null : c.GetValueOrDefault("clasif_bss_sss"),
             idProyectoOp: string.IsNullOrEmpty(c.GetValueOrDefault("id_proyecto_op")) ? null : c.GetValueOrDefault("id_proyecto_op"),
             porcPart: decimal.TryParse(c.GetValueOrDefault("porc_part"), out var pp) ? pp : null,
-            imb: decimal.TryParse(c.GetValueOrDefault("imb"), out var imb) ? imb : null,
+            imb: decimal.TryParse(c.GetValueOrDefault("imb"), out var imb) ? imb : 0,
             carOrigIndEI: string.IsNullOrEmpty(c.GetValueOrDefault("car_orig_ind_e_i")) ? null : c.GetValueOrDefault("car_orig_ind_e_i"),
             detraccion: string.IsNullOrEmpty(c.GetValueOrDefault("detraccion")) ? null : c.GetValueOrDefault("detraccion"),
             codigoTipoNota: string.IsNullOrEmpty(c.GetValueOrDefault("tipo_nota")) ? null : c.GetValueOrDefault("tipo_nota"),
-            incal: string.IsNullOrEmpty(c.GetValueOrDefault("incal")) ? null : c.GetValueOrDefault("incal")
+            incal: string.IsNullOrEmpty(c.GetValueOrDefault("incal")) ? null : c.GetValueOrDefault("incal"),
+            camposLibres: string.IsNullOrEmpty(c.GetValueOrDefault("campos_libres")) ? null : c.GetValueOrDefault("campos_libres")
         );
     }
 }

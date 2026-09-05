@@ -86,16 +86,13 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                     var tipoCambio = (n.TipoCambio.HasValue && n.TipoCambio.Value > 0) ? n.TipoCambio.Value : 1.0000m;
                     var estadoCp = string.IsNullOrWhiteSpace(n.CodigoEstadoComprobante) ? "1" : n.CodigoEstadoComprobante.Trim();
 
-                    // Generar CAR SUNAT si no viene provisto (RUC + Tipo + Serie + Numero)
-                    var carSunat = !string.IsNullOrWhiteSpace(n.CarSunat)
-                        ? n.CarSunat.Trim()
-                        : $"{carga.EmpresaRuc}{n.CodigoTipoCp.Trim()}{n.Serie.Trim().PadLeft(4, '0')}{n.Numero.Trim().PadLeft(8, '0')}";
+                    // Guardar CAR SUNAT si viene provisto, de lo contrario null
+                    var carSunat = !string.IsNullOrWhiteSpace(n.CarSunat) ? n.CarSunat.Trim() : null;
 
                     var nuevaVenta = Service.Operaciones.Domain.Entities.Venta.Crear(
                         empresaRuc: carga.EmpresaRuc,
                         periodo: carga.Periodo,
                         idCarga: carga.IdCarga,
-                        carSunat: carSunat,
                         codigoTipoCp: n.CodigoTipoCp.Trim(),
                         serie: n.Serie.Trim().ToUpper(),
                         numero: n.Numero.Trim(),
@@ -108,6 +105,7 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                         tipoCambio: tipoCambio,
                         codigoEstadoComprobante: estadoCp,
                         usuarioCreacion: request.Usuario ?? "sistema",
+                        carSunat: carSunat,
                         biGravada: n.BiGravada,
                         igvIpm: n.IgvIpm
                     );
@@ -153,10 +151,8 @@ public class ActualizarVentasCommandHandler : IRequestHandler<ActualizarVentasCo
                     var tipoCambio = (m.TipoCambio.HasValue && m.TipoCambio.Value > 0) ? m.TipoCambio.Value : 1.0000m;
                     var estadoCp = string.IsNullOrWhiteSpace(m.CodigoEstadoComprobante) ? "1" : m.CodigoEstadoComprobante.Trim();
 
-                    // Recalcular CAR SUNAT si no viene provisto o si cambiaron sus componentes
-                    var carSunat = !string.IsNullOrWhiteSpace(m.CarSunat)
-                        ? m.CarSunat.Trim()
-                        : $"{carga.EmpresaRuc}{m.CodigoTipoCp.Trim()}{m.Serie.Trim().PadLeft(4, '0')}{m.Numero.Trim().PadLeft(8, '0')}";
+                    // Guardar CAR SUNAT si viene provisto, de lo contrario null
+                    var carSunat = !string.IsNullOrWhiteSpace(m.CarSunat) ? m.CarSunat.Trim() : null;
 
                     ventaExistente.ActualizarDatos(
                         codigoTipoCp: m.CodigoTipoCp.Trim(),
