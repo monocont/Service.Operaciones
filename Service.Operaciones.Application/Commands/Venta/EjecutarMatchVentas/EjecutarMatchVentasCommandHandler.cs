@@ -307,11 +307,34 @@ public class EjecutarMatchVentasCommandHandler : IRequestHandler<EjecutarMatchVe
                             fechaEmision: e.FechaEmision,
                             codigoTipoDocIdentidad: e.CodigoTipoDocIdentidad,
                             nroDocIdentidad: e.NroDocIdentidad,
-                            razonSocial: s.RazonSocial, // SIRE provee la razón social si existía
+                            razonSocial: !string.IsNullOrWhiteSpace(e.RazonSocial) ? e.RazonSocial : s.RazonSocial,
                             totalCp: e.TotalCp,
                             usuarioCreacion: request.Usuario,
+                            carSunat: e.CarSunat,
+                            fechaVencimiento: e.FechaVencimiento,
+                            numeroFinal: e.NumeroFinal,
+                            valorFacturadoExportacion: e.ValorFacturadoExportacion,
+                            biGravada: e.BiGravada,
+                            descuentoBi: e.DescuentoBi,
+                            igvIpm: e.IgvIpm,
+                            descuentoIgv: e.DescuentoIgv,
+                            montoExonerado: e.MontoExonerado,
+                            montoInafecto: e.MontoInafecto,
+                            montoIsc: e.MontoIsc,
+                            biGravadaIvap: e.BiGravadaIvap,
+                            montoIvap: e.MontoIvap,
+                            montoIcbper: e.MontoIcbper,
+                            montoOtrosTributos: e.MontoOtrosTributos,
                             codigoMoneda: e.CodigoMoneda,
-                            tipoCambio: e.TipoCambio
+                            tipoCambio: e.TipoCambio,
+                            fechaEmisionDocModificado: e.FechaEmisionDocModificado,
+                            codigoTipoCpModificado: e.CodigoTipoCpModificado,
+                            serieCpModificado: e.SerieCpModificado,
+                            numeroCpModificado: e.NumeroCpModificado,
+                            codigoEstadoComprobante: e.CodigoEstadoComprobante,
+                            codigoTipoNota: e.CodigoTipoNota,
+                            tipoOperacion: e.TipoOperacion,
+                            camposLibres: e.CamposLibres
                         );
                         listaMatch.Add(vmEmpresa);
 
@@ -401,11 +424,34 @@ public class EjecutarMatchVentasCommandHandler : IRequestHandler<EjecutarMatchVe
                         fechaEmision: e.FechaEmision,
                         codigoTipoDocIdentidad: e.CodigoTipoDocIdentidad,
                         nroDocIdentidad: e.NroDocIdentidad,
-                        razonSocial: "-",
+                        razonSocial: !string.IsNullOrWhiteSpace(e.RazonSocial) ? e.RazonSocial : "-",
                         totalCp: e.TotalCp,
                         usuarioCreacion: request.Usuario,
+                        carSunat: e.CarSunat,
+                        fechaVencimiento: e.FechaVencimiento,
+                        numeroFinal: e.NumeroFinal,
+                        valorFacturadoExportacion: e.ValorFacturadoExportacion,
+                        biGravada: e.BiGravada,
+                        descuentoBi: e.DescuentoBi,
+                        igvIpm: e.IgvIpm,
+                        descuentoIgv: e.DescuentoIgv,
+                        montoExonerado: e.MontoExonerado,
+                        montoInafecto: e.MontoInafecto,
+                        montoIsc: e.MontoIsc,
+                        biGravadaIvap: e.BiGravadaIvap,
+                        montoIvap: e.MontoIvap,
+                        montoIcbper: e.MontoIcbper,
+                        montoOtrosTributos: e.MontoOtrosTributos,
                         codigoMoneda: e.CodigoMoneda,
-                        tipoCambio: e.TipoCambio
+                        tipoCambio: e.TipoCambio,
+                        fechaEmisionDocModificado: e.FechaEmisionDocModificado,
+                        codigoTipoCpModificado: e.CodigoTipoCpModificado,
+                        serieCpModificado: e.SerieCpModificado,
+                        numeroCpModificado: e.NumeroCpModificado,
+                        codigoEstadoComprobante: e.CodigoEstadoComprobante,
+                        codigoTipoNota: e.CodigoTipoNota,
+                        tipoOperacion: e.TipoOperacion,
+                        camposLibres: e.CamposLibres
                     );
                     listaMatch.Add(vm);
                 }
@@ -571,7 +617,7 @@ public class EjecutarMatchVentasCommandHandler : IRequestHandler<EjecutarMatchVe
         var porSerie = ventasMatch
             .GroupBy(v => new
             {
-                TipoCp = v.CodigoTipoCp ?? string.Empty,
+                TipoCp = (v.CodigoTipoCp ?? string.Empty).Trim().PadLeft(2, '0'),
                 Serie = (v.Serie ?? string.Empty).Trim().ToUpper()
             })
             .Where(g => !string.IsNullOrEmpty(g.Key.Serie));

@@ -55,8 +55,7 @@ public class VentaEmpresaExcelParser : IVentaEmpresaParser
                     resultadoLinea.ErrorMensaje = "La Fecha de Emisión es obligatoria";
                     resultadoLinea.CampoError = "FECHA EMISION";
                 }
-                else if (DateTime.TryParse(fechaRaw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ||
-                         DateTime.TryParseExact(fechaRaw, new[] { "yyyy-MM-dd", "dd/MM/yyyy", "d/M/yyyy", "yyyy/MM/dd" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+                else if (TryParseFecha(fechaRaw, out var dt))
                 {
                     resultadoLinea.FechaEmision = dt;
                 }
@@ -67,8 +66,15 @@ public class VentaEmpresaExcelParser : IVentaEmpresaParser
                     resultadoLinea.CampoError = "FECHA EMISION";
                 }
 
-                // Col 1: TIPO CP
-                var tipoCpRaw = ObtenerValorCelda(reader, 1)?.Trim();
+                // Col 1: FECHA VCTO
+                var fVctoRaw = ObtenerValorCelda(reader, 1)?.Trim();
+                if (!string.IsNullOrWhiteSpace(fVctoRaw) && TryParseFecha(fVctoRaw, out var dtVcto))
+                {
+                    resultadoLinea.FechaVencimiento = dtVcto;
+                }
+
+                // Col 2: TIPO CP
+                var tipoCpRaw = ObtenerValorCelda(reader, 2)?.Trim();
                 if (string.IsNullOrWhiteSpace(tipoCpRaw))
                 {
                     resultadoLinea.EsValido = false;
@@ -80,8 +86,8 @@ public class VentaEmpresaExcelParser : IVentaEmpresaParser
                     resultadoLinea.CodigoTipoCp = tipoCpRaw.PadLeft(2, '0');
                 }
 
-                // Col 2: SERIE
-                var serieRaw = ObtenerValorCelda(reader, 2)?.Trim();
+                // Col 3: SERIE
+                var serieRaw = ObtenerValorCelda(reader, 3)?.Trim();
                 if (string.IsNullOrWhiteSpace(serieRaw))
                 {
                     resultadoLinea.EsValido = false;
@@ -93,8 +99,8 @@ public class VentaEmpresaExcelParser : IVentaEmpresaParser
                     resultadoLinea.Serie = serieRaw.ToUpperInvariant();
                 }
 
-                // Col 3: NUMERO
-                var numeroRaw = ObtenerValorCelda(reader, 3)?.Trim();
+                // Col 4: NUMERO
+                var numeroRaw = ObtenerValorCelda(reader, 4)?.Trim();
                 if (string.IsNullOrWhiteSpace(numeroRaw))
                 {
                     resultadoLinea.EsValido = false;
@@ -106,16 +112,40 @@ public class VentaEmpresaExcelParser : IVentaEmpresaParser
                     resultadoLinea.Numero = numeroRaw;
                 }
 
-                // Col 4: TIPO DOC
-                var tipoDocRaw = ObtenerValorCelda(reader, 4)?.Trim();
+                // Col 5: TIPO DOC CLIENTE
+                var tipoDocRaw = ObtenerValorCelda(reader, 5)?.Trim();
                 resultadoLinea.CodigoTipoDocIdentidad = string.IsNullOrWhiteSpace(tipoDocRaw) ? "0" : tipoDocRaw;
 
-                // Col 5: RUC / DOC CLIENTE
-                var nroDocRaw = ObtenerValorCelda(reader, 5)?.Trim();
+                // Col 6: RUC / DOC CLIENTE
+                var nroDocRaw = ObtenerValorCelda(reader, 6)?.Trim();
                 resultadoLinea.NroDocIdentidad = string.IsNullOrWhiteSpace(nroDocRaw) ? "-" : nroDocRaw;
 
-                // Col 6: TOTAL CP
-                var totalCpRaw = ObtenerValorCelda(reader, 6)?.Trim();
+                // Col 7: RAZON SOCIAL CLIENTE
+                resultadoLinea.RazonSocial = ObtenerValorCelda(reader, 7)?.Trim() ?? string.Empty;
+
+                // Col 8: VALOR FACTURADO EXPORTACION
+                resultadoLinea.ValorFacturadoExportacion = ParseDecimal(ObtenerValorCelda(reader, 8));
+
+                // Col 9: BASE IMPONIBLE GRAVADA
+                resultadoLinea.BiGravada = ParseDecimal(ObtenerValorCelda(reader, 9));
+
+                // Col 10: EXONERADO
+                resultadoLinea.MontoExonerado = ParseDecimal(ObtenerValorCelda(reader, 10));
+
+                // Col 11: INAFECTO
+                resultadoLinea.MontoInafecto = ParseDecimal(ObtenerValorCelda(reader, 11));
+
+                // Col 12: ISC
+                resultadoLinea.MontoIsc = ParseDecimal(ObtenerValorCelda(reader, 12));
+
+                // Col 13: IGV / IPM
+                resultadoLinea.IgvIpm = ParseDecimal(ObtenerValorCelda(reader, 13));
+
+                // Col 14: OTROS TRIBUTOS
+                resultadoLinea.MontoOtrosTributos = ParseDecimal(ObtenerValorCelda(reader, 14));
+
+                // Col 15: TOTAL CP
+                var totalCpRaw = ObtenerValorCelda(reader, 15)?.Trim();
                 if (string.IsNullOrWhiteSpace(totalCpRaw))
                 {
                     resultadoLinea.EsValido = false;
@@ -133,24 +163,51 @@ public class VentaEmpresaExcelParser : IVentaEmpresaParser
                     resultadoLinea.CampoError = "TOTAL CP";
                 }
 
-                // Col 7: MONEDA
-                var monedaRaw = ObtenerValorCelda(reader, 7)?.Trim().ToUpperInvariant();
-                resultadoLinea.CodigoMoneda = string.IsNullOrWhiteSpace(monedaRaw) ? "PEN" : monedaRaw;
-
-                // Col 8: TIPO CAMBIO
-                var tcRaw = ObtenerValorCelda(reader, 8)?.Trim();
+                // Col 16: TIPO CAMBIO
+                var tcRaw = ObtenerValorCelda(reader, 16)?.Trim();
                 if (string.IsNullOrWhiteSpace(tcRaw))
                 {
                     resultadoLinea.TipoCambio = 1.0000m;
                 }
                 else if (decimal.TryParse(tcRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var tc))
                 {
-                    resultadoLinea.TipoCambio = tc;
+                    resultadoLinea.TipoCambio = tc > 0 ? tc : 1.0000m;
                 }
                 else
                 {
                     resultadoLinea.TipoCambio = 1.0000m;
                 }
+
+                // Col 17: FECHA EMISION DOC MODIFICADO
+                var fModRaw = ObtenerValorCelda(reader, 17)?.Trim();
+                if (!string.IsNullOrWhiteSpace(fModRaw) && TryParseFecha(fModRaw, out var dtMod))
+                {
+                    resultadoLinea.FechaEmisionDocModificado = dtMod;
+                }
+
+                // Col 18: TIPO CP MODIFICADO
+                var tipoModRaw = ObtenerValorCelda(reader, 18)?.Trim();
+                if (!string.IsNullOrWhiteSpace(tipoModRaw))
+                {
+                    resultadoLinea.CodigoTipoCpModificado = tipoModRaw.PadLeft(2, '0');
+                }
+
+                // Col 19: SERIE CP MODIFICADO
+                resultadoLinea.SerieCpModificado = ObtenerValorCelda(reader, 19)?.Trim().ToUpperInvariant();
+
+                // Col 20: NUMERO CP MODIFICADO
+                resultadoLinea.NumeroCpModificado = ObtenerValorCelda(reader, 20)?.Trim();
+
+                // Campos complementarios con valores por defecto
+                resultadoLinea.NumeroFinal = string.Empty;
+                resultadoLinea.DescuentoBi = 0;
+                resultadoLinea.DescuentoIgv = 0;
+                resultadoLinea.BiGravadaIvap = 0;
+                resultadoLinea.MontoIvap = 0;
+                resultadoLinea.MontoIcbper = 0;
+                resultadoLinea.CodigoMoneda = (resultadoLinea.TipoCambio.HasValue && resultadoLinea.TipoCambio.Value > 1.0000m) ? "USD" : "PEN";
+                resultadoLinea.CodigoTipoNota = string.Empty;
+                resultadoLinea.CodigoEstadoComprobante = "1";
             }
             catch (Exception ex)
             {
@@ -162,6 +219,22 @@ public class VentaEmpresaExcelParser : IVentaEmpresaParser
         }
 
         return Task.FromResult(resultados);
+    }
+
+    private static bool TryParseFecha(string raw, out DateTime fecha)
+    {
+        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha) ||
+               DateTime.TryParseExact(raw, new[] { "yyyy-MM-dd", "dd/MM/yyyy", "d/M/yyyy", "yyyy/MM/dd", "dd-MM-yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha);
+    }
+
+    private static decimal ParseDecimal(string? raw, decimal valorDefecto = 0)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return valorDefecto;
+        if (decimal.TryParse(raw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var valor))
+        {
+            return valor;
+        }
+        return valorDefecto;
     }
 
     private static string? ObtenerValorCelda(IExcelDataReader reader, int indice)

@@ -170,61 +170,79 @@ public class ActualizarVentasMatchCommandHandler : IRequestHandler<ActualizarVen
             // 5. Recuperar todos los comprobantes consolidados vigentes tras mutaciones
             var todosConsolidados = await _ventaMatchRepo.ListarPorCargaAsync(request.IdCarga, cancellationToken);
 
-            // 6. Obtener orígenes SIRE y EMPRESA para revalidar discrepancias de match
-            var cargasSire = await _archivoCargaRepo.ListarAsync(carga.EmpresaRuc, TipoOperacion.VentaSire, carga.Periodo, 1, 1, cancellationToken);
-            var cargaSire = cargasSire.FirstOrDefault();
-
-            var cargasEmpresa = await _archivoCargaRepo.ListarAsync(carga.EmpresaRuc, TipoOperacion.VentaEmpresa, carga.Periodo, 1, 1, cancellationToken);
-            var cargaEmpresa = cargasEmpresa.FirstOrDefault();
-
-            var ventasSire = cargaSire != null ? await _ventaRepo.ListarPorCargaAsync(cargaSire.IdCarga, cancellationToken) : new List<Service.Operaciones.Domain.Entities.Venta>();
-            var ventasEmpresa = cargaEmpresa != null ? await _ventaEmpresaRepo.ListarPorCargaAsync(cargaEmpresa.IdCarga, cancellationToken) : new List<VentaEmpresa>();
-
-            var dictSire = new Dictionary<string, Service.Operaciones.Domain.Entities.Venta>(StringComparer.OrdinalIgnoreCase);
-            foreach (var vs in ventasSire)
-            {
-                var k = $"{vs.Serie?.Trim().ToUpper()}|{NormalizarNumeroComprobante(vs.Numero)}";
-                dictSire[k] = vs;
-            }
-
-            var dictEmp = new Dictionary<string, VentaEmpresa>(StringComparer.OrdinalIgnoreCase);
-            foreach (var ve in ventasEmpresa)
-            {
-                var k = $"{ve.Serie?.Trim().ToUpper()}|{NormalizarNumeroComprobante(ve.Numero)}";
-                dictEmp[k] = ve;
-            }
+            // 6. Validar discrepancias de match directamente sobre el estado consolidado actual de venta_match
+            var porComprobante = todosConsolidados
+                .GroupBy(v => $"{v.Serie?.Trim().ToUpper()}|{NormalizarNumeroComprobante(v.Numero)}")
+                .ToList();
 
             var nuevosErrores = new List<ArchivoCargaError>();
+            var paraActualizarBanderas = new List<VentaMatch>();
 
-            // 6.1 Validar discrepancias de match entre orígenes
-            foreach (var vm in todosConsolidados)
+            foreach (var grupo in porComprobante)
             {
-                var key = $"{vm.Serie?.Trim().ToUpper()}|{NormalizarNumeroComprobante(vm.Numero)}";
-                dictSire.TryGetValue(key, out var s);
-                dictEmp.TryGetValue(key, out var e);
-
-                if (s != null && e != null)
+                var items = grupo.ToList();
+                if (items.Count > 1)
                 {
-                    var diffs = new List<string>();
-                    if (s.FechaEmision.Date != e.FechaEmision.Date) diffs.Add("No coincide la Fecha de Emisión");
-                    if ((s.CodigoTipoCp ?? string.Empty).Trim().PadLeft(2, '0') != (e.CodigoTipoCp ?? string.Empty).Trim().PadLeft(2, '0')) diffs.Add("No coincide el Tipo de Comprobante");
-                    if ((s.CodigoTipoDocIdentidad ?? string.Empty).Trim() != (e.CodigoTipoDocIdentidad ?? string.Empty).Trim()) diffs.Add("No coincide el Tipo de Documento de Identidad");
-                    if ((s.NroDocIdentidad ?? string.Empty).Trim() != (e.NroDocIdentidad ?? string.Empty).Trim()) diffs.Add("No coincide el RUC / Documento del Cliente");
-                    if (s.TotalCp != e.TotalCp) diffs.Add("No coincide el Total CP");
+                    // Comprobante con múltiples orígenes vigentes (discrepancia no resuelta aún)
+                    var sire = items.FirstOrDefault(x => x.OrigenDato == "SIRE") ?? items[0];
+                    var emp = items.FirstOrDefault(x => x.OrigenDato == "EMPRESA") ?? items[1];
 
-                    foreach (var d in diffs)
+                    var diffs = new List<string>();
+                    if (sire.FechaEmision.Date != emp.FechaEmision.Date)
+                        diffs.Add("No coincide la Fecha de Emisión");
+                    if ((sire.CodigoTipoCp ?? string.Empty).Trim().PadLeft(2, '0') != (emp.CodigoTipoCp ?? string.Empty).Trim().PadLeft(2, '0'))
+                        diffs.Add("No coincide el Tipo de Comprobante");
+                    if ((sire.CodigoTipoDocIdentidad ?? string.Empty).Trim() != (emp.CodigoTipoDocIdentidad ?? string.Empty).Trim())
+                        diffs.Add("No coincide el Tipo de Documento de Identidad");
+                    if ((sire.NroDocIdentidad ?? string.Empty).Trim() != (emp.NroDocIdentidad ?? string.Empty).Trim())
+                        diffs.Add("No coincide el RUC / Documento del Cliente");
+                    if (sire.TotalCp != emp.TotalCp)
+                        diffs.Add("No coincide el Total CP");
+
+                    if (diffs.Count > 0)
                     {
-                        nuevosErrores.Add(ArchivoCargaError.Crear(
-                            idCarga: carga.IdCarga,
-                            numeroLinea: vm.NumeroLinea,
-                            tipoError: TipoErrorCarga.Validacion,
-                            mensaje: $"{d} en comprobante {vm.Serie}-{vm.Numero}",
-                            campoError: "match_discrepancia",
-                            valorLectura: $"{vm.Serie}-{vm.Numero}",
-                            severidad: SeveridadError.Error
-                        ));
+                        foreach (var d in diffs)
+                        {
+                            nuevosErrores.Add(ArchivoCargaError.Crear(
+                                idCarga: carga.IdCarga,
+                                numeroLinea: sire.NumeroLinea,
+                                tipoError: TipoErrorCarga.Validacion,
+                                mensaje: $"{d} en comprobante {sire.Serie}-{sire.Numero}",
+                                campoError: "match_discrepancia",
+                                valorLectura: $"{sire.Serie}-{sire.Numero}",
+                                severidad: SeveridadError.Error
+                            ));
+                        }
+                    }
+                    else
+                    {
+                        // Si los registros coinciden tras edición del usuario, marcar como exactos
+                        foreach (var item in items)
+                        {
+                            if (item.EsDiferencia)
+                            {
+                                item.ActualizarBanderasMatch(esCoincidenciaExacta: true, esDiferencia: false, esSoloUnOrigen: false);
+                                paraActualizarBanderas.Add(item);
+                            }
+                        }
                     }
                 }
+                else if (items.Count == 1)
+                {
+                    // Solo queda un registro: el usuario ya resolvió el conflicto dejando el registro correcto
+                    var item = items[0];
+                    if (item.EsDiferencia)
+                    {
+                        item.ActualizarBanderasMatch(esCoincidenciaExacta: true, esDiferencia: false, esSoloUnOrigen: false);
+                        paraActualizarBanderas.Add(item);
+                    }
+                }
+            }
+
+            if (paraActualizarBanderas.Count > 0)
+            {
+                await _ventaMatchRepo.ActualizarRangoAsync(paraActualizarBanderas, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
 
             // 6.2 Validaciones de negocio y correlatividades completas
@@ -376,7 +394,7 @@ public class ActualizarVentasMatchCommandHandler : IRequestHandler<ActualizarVen
         var porSerie = ventasMatch
             .GroupBy(v => new
             {
-                TipoCp = v.CodigoTipoCp ?? string.Empty,
+                TipoCp = (v.CodigoTipoCp ?? string.Empty).Trim().PadLeft(2, '0'),
                 Serie = (v.Serie ?? string.Empty).Trim().ToUpper()
             })
             .Where(g => !string.IsNullOrEmpty(g.Key.Serie));

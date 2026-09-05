@@ -372,7 +372,20 @@ public class CargaController : ControllerBase
     }
 
     /// <summary>
-    /// Elimina físicamente una carga de archivos y todos sus registros asociados (errores, ventas, etc.)
+    /// Elimina físicamente los registros y el archivo de match de ventas de un periodo
+    /// </summary>
+    [HttpDelete("ventas/match/{idCarga:guid}")]
+    public async Task<IActionResult> EliminarMatchVentas(
+        [FromRoute] Guid idCarga,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new Service.Operaciones.Application.Commands.Carga.EliminarArchivoCarga.EliminarArchivoCargaCommand(idCarga);
+        var resultado = await _mediator.Send(command, cancellationToken);
+        return Ok(resultado);
+    }
+
+    /// <summary>
+    /// Elimina físicamente una carga de archivos y todos sus registros asociados (errores, ventas, match, etc.)
     /// </summary>
     [HttpDelete("cargas/{idCarga:guid}")]
     public async Task<IActionResult> EliminarCarga(

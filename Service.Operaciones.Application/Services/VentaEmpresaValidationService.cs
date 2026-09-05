@@ -196,7 +196,7 @@ public class VentaEmpresaValidationService : IVentaEmpresaValidationService
         var porSerie = ventas
             .GroupBy(v => new
             {
-                TipoCp = v.CodigoTipoCp ?? string.Empty,
+                TipoCp = (v.CodigoTipoCp ?? string.Empty).Trim().PadLeft(2, '0'),
                 Serie = (v.Serie ?? string.Empty).Trim().ToUpper()
             })
             .Where(g => !string.IsNullOrEmpty(g.Key.Serie));
@@ -269,7 +269,7 @@ public class VentaEmpresaValidationService : IVentaEmpresaValidationService
         var porSerie = ventas
             .GroupBy(v => new
             {
-                TipoCp = v.CodigoTipoCp ?? string.Empty,
+                TipoCp = (v.CodigoTipoCp ?? string.Empty).Trim().PadLeft(2, '0'),
                 Serie = (v.Serie ?? string.Empty).Trim().ToUpper()
             })
             .Where(g => !string.IsNullOrEmpty(g.Key.Serie));

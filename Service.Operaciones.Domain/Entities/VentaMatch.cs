@@ -230,4 +230,12 @@ public class VentaMatch : EntidadAuditoria
         ModificadoPor = usuarioModificacion;
         FechaModificacion = DateTime.UtcNow;
     }
+
+    public void ActualizarBanderasMatch(bool esCoincidenciaExacta, bool esDiferencia, bool esSoloUnOrigen)
+    {
+        EsCoincidenciaExacta = esCoincidenciaExacta;
+        EsDiferencia = esDiferencia;
+        EsSoloUnOrigen = esSoloUnOrigen;
+        FechaModificacion = DateTime.UtcNow;
+    }
 }
