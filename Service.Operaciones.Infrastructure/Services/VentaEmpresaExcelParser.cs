@@ -221,10 +221,35 @@ public class VentaEmpresaExcelParser : IVentaEmpresaParser
         return Task.FromResult(resultados);
     }
 
+    private static readonly string[] FormatosFecha = new[]
+    {
+        "dd/MM/yyyy",
+        "d/M/yyyy",
+        "dd-MM-yyyy",
+        "d-M-yyyy",
+        "yyyy-MM-dd",
+        "yyyy/MM/dd",
+        "dd/MM/yyyy HH:mm:ss",
+        "d/M/yyyy HH:mm:ss",
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy/MM/dd HH:mm:ss"
+    };
+
+    private static readonly CultureInfo CulturaPeru = CultureInfo.GetCultureInfo("es-PE");
+
     private static bool TryParseFecha(string raw, out DateTime fecha)
     {
-        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha) ||
-               DateTime.TryParseExact(raw, new[] { "yyyy-MM-dd", "dd/MM/yyyy", "d/M/yyyy", "yyyy/MM/dd", "dd-MM-yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha);
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            fecha = default;
+            return false;
+        }
+
+        var clean = raw.Trim();
+        return DateTime.TryParseExact(clean, FormatosFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha) ||
+               DateTime.TryParseExact(clean, FormatosFecha, CulturaPeru, DateTimeStyles.None, out fecha) ||
+               DateTime.TryParse(clean, CulturaPeru, DateTimeStyles.None, out fecha) ||
+               DateTime.TryParse(clean, CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha);
     }
 
     private static decimal ParseDecimal(string? raw, decimal valorDefecto = 0)

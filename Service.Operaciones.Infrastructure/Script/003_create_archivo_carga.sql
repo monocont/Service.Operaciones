@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS operaciones.archivo_carga (
     id_tipo_operacion      INT NOT NULL,
     formato                VARCHAR(20) NOT NULL,
     nombre_original        VARCHAR(255) NOT NULL,
-    hash_documento         VARCHAR(64) NOT NULL,
+    hash_documento         VARCHAR(250) NOT NULL,
     num_registros          INT NOT NULL DEFAULT 0,
     num_registros_validos  INT NOT NULL DEFAULT 0,
     num_registros_error    INT NOT NULL DEFAULT 0,

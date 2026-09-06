@@ -4,20 +4,20 @@ using Service.Operaciones.Domain.Enums;
 
 namespace Service.Operaciones.Application.Services;
 
-public class CompraSireValidationService : ICompraSireValidationService
+public class CompraEmpresaValidationService : ICompraEmpresaValidationService
 {
-    private readonly ICompraSireRepository _compraSireRepo;
+    private readonly ICompraEmpresaRepository _compraEmpresaRepo;
 
-    public CompraSireValidationService(ICompraSireRepository compraSireRepo)
+    public CompraEmpresaValidationService(ICompraEmpresaRepository compraEmpresaRepo)
     {
-        _compraSireRepo = compraSireRepo;
+        _compraEmpresaRepo = compraEmpresaRepo;
     }
 
-    public async Task<List<ArchivoCargaError>> ValidarComprasSireAsync(
+    public async Task<List<ArchivoCargaError>> ValidarComprasEmpresaAsync(
         Guid idCarga,
         string empresaRuc,
         string periodo,
-        List<CompraSire> compras,
+        List<CompraEmpresa> compras,
         CancellationToken cancellationToken)
     {
         var errores = new List<ArchivoCargaError>();
@@ -31,20 +31,17 @@ public class CompraSireValidationService : ICompraSireValidationService
         var ultimoDiaPeriodo = new DateTime(anioPeriodo, mesPeriodo, DateTime.DaysInMonth(anioPeriodo, mesPeriodo));
 
         var comprobantesPorClave = new Dictionary<string, List<int>>();
-        var carSunatsVistos = new Dictionary<string, List<int>>();
 
         for (var i = 0; i < compras.Count; i++)
         {
             var compra = compras[i];
             var numeroLinea = compra.NumeroLinea > 0 ? compra.NumeroLinea : i + 1;
 
-            var serie = (compra.Serie ?? string.Empty).Trim().ToUpper();
+            var serie = (compra.Serie ?? string.Empty).Trim().ToUpperInvariant();
             var numero = (compra.Numero ?? string.Empty).Trim();
             var tipoCp = (compra.CodigoTipoCp ?? string.Empty).Trim();
             var nroDoc = (compra.NroDocIdentidad ?? string.Empty).Trim();
-            var periodoCompra = (compra.Periodo ?? string.Empty).Trim();
             var fechaEmision = compra.FechaEmision;
-            var carSunat = (compra.CarSunat ?? string.Empty).Trim();
 
             // 1. Detección de Duplicados Internos por Proveedor + Tipo + Serie + Número
             if (!string.IsNullOrWhiteSpace(nroDoc) && !string.IsNullOrWhiteSpace(serie) && !string.IsNullOrWhiteSpace(numero))
@@ -57,47 +54,7 @@ public class CompraSireValidationService : ICompraSireValidationService
                 comprobantesPorClave[clave].Add(numeroLinea);
             }
 
-            // 1.1 Detección de CAR SUNAT Duplicado interno
-            if (!string.IsNullOrWhiteSpace(carSunat))
-            {
-                if (!carSunatsVistos.ContainsKey(carSunat))
-                {
-                    carSunatsVistos[carSunat] = new List<int>();
-                }
-                carSunatsVistos[carSunat].Add(numeroLinea);
-            }
-
-            // 2. Consistencia de Periodo
-            if (!string.IsNullOrWhiteSpace(periodoCompra) && periodoCompra != periodo)
-            {
-                var esPeriodoSuperior = string.Compare(periodoCompra, periodo, StringComparison.Ordinal) > 0;
-                var sevPeriodo = esPeriodoSuperior ? SeveridadError.Error : SeveridadError.Advertencia;
-
-                errores.Add(ArchivoCargaError.Crear(
-                    idCarga,
-                    numeroLinea,
-                    TipoErrorCarga.Negocio,
-                    $"Periodo inconsistente: El comprobante Serie '{serie}', Número '{numero}' corresponde al periodo '{periodoCompra}', difiere del periodo cargado '{periodo}'",
-                    campoError: "periodo",
-                    valorLectura: periodoCompra,
-                    severidad: sevPeriodo));
-            }
-
-            // 3. Consistencia de RUC de Empresa declarante
-            var rucEmpresaFila = (compra.EmpresaRuc ?? string.Empty).Trim();
-            if (!string.IsNullOrWhiteSpace(rucEmpresaFila) && rucEmpresaFila != empresaRuc)
-            {
-                errores.Add(ArchivoCargaError.Crear(
-                    idCarga,
-                    numeroLinea,
-                    TipoErrorCarga.Negocio,
-                    $"RUC inconsistente: El comprobante Serie '{serie}', Número '{numero}' pertenece al RUC '{rucEmpresaFila}', difiere de la empresa seleccionada '{empresaRuc}'",
-                    campoError: "ruc",
-                    valorLectura: rucEmpresaFila,
-                    severidad: SeveridadError.Advertencia));
-            }
-
-            // 4. Validación de Fecha de Emisión
+            // 2. Validación de Fecha de Emisión respecto al periodo
             // En compras se permite registrar comprobantes de periodos anteriores. Solo es error si la fecha es posterior al periodo.
             if (fechaEmision.Date > ultimoDiaPeriodo.Date)
             {
@@ -106,17 +63,17 @@ public class CompraSireValidationService : ICompraSireValidationService
                     idCarga,
                     numeroLinea,
                     TipoErrorCarga.Negocio,
-                    $"Fecha fuera de periodo: El comprobante Serie '{serie}', Número '{numero}' tiene fecha de emisión {fechaEmision:dd/MM/yyyy} posterior al periodo seleccionado '{periodo}'",
+                    $"Fecha fuera de periodo: El comprobante Serie '{serie}', Número '{numero}' del proveedor '{nroDoc}' tiene fecha de emisión {fechaEmision:dd/MM/yyyy} posterior al periodo seleccionado '{periodo}'",
                     campoError: "fecha_emision",
                     valorLectura: fechaEmision.ToString("dd/MM/yyyy"),
                     severidad: SeveridadError.Error));
             }
 
-            // 5. Validación de Documento de Identidad del Proveedor (DNI y RUC)
+            // 3. Validación de Documento de Identidad del Proveedor (DNI, RUC y Genéricos/Extranjeros)
             var tipoDoc = (compra.CodigoTipoDocIdentidad ?? string.Empty).Trim();
             if (!string.IsNullOrWhiteSpace(tipoDoc) || !string.IsNullOrWhiteSpace(nroDoc))
             {
-                if (tipoDoc == "1") // DNI: 8 dígitos
+                if (tipoDoc == "1") // DNI: 8 dígitos numéricos
                 {
                     if (nroDoc.Length != 8 || !nroDoc.All(char.IsDigit))
                     {
@@ -124,13 +81,13 @@ public class CompraSireValidationService : ICompraSireValidationService
                             idCarga,
                             numeroLinea,
                             TipoErrorCarga.Formato,
-                            $"Documento DNI inválido: El proveedor del comprobante Serie '{serie}', Número '{numero}' tiene documento '{nroDoc}' que debe contener 8 dígitos numéricos.",
+                            $"Documento DNI inválido: El proveedor del comprobante Serie '{serie}', Número '{numero}' tiene documento '{nroDoc}' que debe contener exactamente 8 dígitos numéricos.",
                             campoError: "nro_doc_identidad",
                             valorLectura: nroDoc,
                             severidad: SeveridadError.Advertencia));
                     }
                 }
-                else if (tipoDoc == "6") // RUC: 11 dígitos y prefijos 10, 20, 15, 17
+                else if (tipoDoc == "6") // RUC: 11 dígitos numéricos que comiencen con 10, 20, 15 o 17
                 {
                     var rucValido = nroDoc.Length == 11 && nroDoc.All(char.IsDigit);
                     if (!rucValido)
@@ -139,7 +96,7 @@ public class CompraSireValidationService : ICompraSireValidationService
                             idCarga,
                             numeroLinea,
                             TipoErrorCarga.Formato,
-                            $"Documento RUC inválido: El proveedor del comprobante Serie '{serie}', Número '{numero}' tiene RUC '{nroDoc}' que debe contener 11 dígitos numéricos.",
+                            $"Documento RUC inválido: El proveedor del comprobante Serie '{serie}', Número '{numero}' tiene RUC '{nroDoc}' que debe contener exactamente 11 dígitos numéricos.",
                             campoError: "nro_doc_identidad",
                             valorLectura: nroDoc,
                             severidad: SeveridadError.Advertencia));
@@ -153,16 +110,30 @@ public class CompraSireValidationService : ICompraSireValidationService
                                 idCarga,
                                 numeroLinea,
                                 TipoErrorCarga.Negocio,
-                                $"Documento RUC con prefijo inválido: El RUC '{nroDoc}' del comprobante Serie '{serie}', Número '{numero}' debe iniciar con 10, 20, 15 o 17.",
+                                $"Documento RUC con prefijo inválido: El RUC '{nroDoc}' del proveedor del comprobante Serie '{serie}', Número '{numero}' debe iniciar con 10, 20, 15 o 17.",
                                 campoError: "nro_doc_identidad",
                                 valorLectura: nroDoc,
                                 severidad: SeveridadError.Advertencia));
                         }
                     }
                 }
+                else if (!string.IsNullOrWhiteSpace(nroDoc) && nroDoc != "-")
+                {
+                    if (nroDoc.Length > 15 || !nroDoc.All(char.IsLetterOrDigit))
+                    {
+                        errores.Add(ArchivoCargaError.Crear(
+                            idCarga,
+                            numeroLinea,
+                            TipoErrorCarga.Formato,
+                            $"Documento inválido: El documento '{nroDoc}' del proveedor del comprobante Serie '{serie}', Número '{numero}' contiene caracteres no permitidos o excede 15 caracteres.",
+                            campoError: "nro_doc_identidad",
+                            valorLectura: nroDoc,
+                            severidad: SeveridadError.Advertencia));
+                    }
+                }
             }
 
-            // 6. Validación de Razón Social obligatoria
+            // 4. Validación de Razón Social obligatoria
             if (string.IsNullOrWhiteSpace(compra.RazonSocial))
             {
                 errores.Add(ArchivoCargaError.Crear(
@@ -176,11 +147,12 @@ public class CompraSireValidationService : ICompraSireValidationService
             }
         }
 
-        // Registro de Errores por Duplicados
+        // 5. Registro de Errores por Duplicados Internos
         foreach (var kvp in comprobantesPorClave.Where(kvp => kvp.Value.Count > 1))
         {
             var partes = kvp.Key.Split('|');
             var rucProv = partes[0];
+            var tipoCp = partes[1];
             var s = partes[2];
             var n = partes[3];
             var cant = kvp.Value.Count;
@@ -190,13 +162,12 @@ public class CompraSireValidationService : ICompraSireValidationService
                 idCarga,
                 primeraLinea,
                 TipoErrorCarga.Duplicado,
-                $"Comprobante duplicado: El comprobante del proveedor '{rucProv}', Serie '{s}', Número '{n}' se encuentra registrado {cant} veces en el archivo.",
+                $"Comprobante duplicado: El comprobante del proveedor '{rucProv}', Tipo '{tipoCp}', Serie '{s}', Número '{n}' se encuentra registrado {cant} veces en el archivo.",
                 campoError: "serie_numero",
                 valorLectura: $"{s}-{n}",
                 severidad: SeveridadError.Error));
         }
 
-        return errores;
+        return await Task.FromResult(errores);
     }
 }
-

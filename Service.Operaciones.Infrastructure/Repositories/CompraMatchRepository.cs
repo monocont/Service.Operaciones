@@ -4,41 +4,41 @@ using Service.Operaciones.Domain.Entities;
 
 namespace Service.Operaciones.Infrastructure.Repositories;
 
-public class VentaMatchRepository : IVentaMatchRepository
+public class CompraMatchRepository : ICompraMatchRepository
 {
     private readonly Database.OperacionesDbContext _context;
 
-    public VentaMatchRepository(Database.OperacionesDbContext context)
+    public CompraMatchRepository(Database.OperacionesDbContext context)
     {
         _context = context;
     }
 
-    public async Task<List<VentaMatch>> ListarPorCargaAsync(Guid idCarga, CancellationToken cancellationToken)
+    public async Task<List<CompraMatch>> ListarPorCargaAsync(Guid idCarga, CancellationToken cancellationToken)
     {
-        return await _context.VentaMatch
+        return await _context.CompraMatch
             .AsNoTracking()
-            .Where(v => v.IdCarga == idCarga)
-            .OrderBy(v => v.NumeroLinea)
+            .Where(c => c.IdCarga == idCarga)
+            .OrderBy(c => c.NumeroLinea)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<int> ContarPorCargaAsync(Guid idCarga, CancellationToken cancellationToken)
     {
-        return await _context.VentaMatch
+        return await _context.CompraMatch
             .AsNoTracking()
-            .CountAsync(v => v.IdCarga == idCarga, cancellationToken);
+            .CountAsync(c => c.IdCarga == idCarga, cancellationToken);
     }
 
-    public async Task AgregarRangoAsync(List<VentaMatch> ventasMatch, CancellationToken cancellationToken)
+    public async Task AgregarRangoAsync(List<CompraMatch> comprasMatch, CancellationToken cancellationToken)
     {
-        await _context.VentaMatch.AddRangeAsync(ventasMatch, cancellationToken);
+        await _context.CompraMatch.AddRangeAsync(comprasMatch, cancellationToken);
     }
 
-    public Task ActualizarRangoAsync(List<VentaMatch> ventasMatch, CancellationToken cancellationToken)
+    public Task ActualizarRangoAsync(List<CompraMatch> comprasMatch, CancellationToken cancellationToken)
     {
-        foreach (var entity in ventasMatch)
+        foreach (var entity in comprasMatch)
         {
-            var tracked = _context.VentaMatch.Local.FirstOrDefault(e => e.IdVentaMatch == entity.IdVentaMatch);
+            var tracked = _context.CompraMatch.Local.FirstOrDefault(e => e.IdCompraMatch == entity.IdCompraMatch);
             if (tracked != null)
             {
                 if (!ReferenceEquals(tracked, entity))
@@ -48,7 +48,7 @@ public class VentaMatchRepository : IVentaMatchRepository
             }
             else
             {
-                _context.VentaMatch.Update(entity);
+                _context.CompraMatch.Update(entity);
             }
         }
         return Task.CompletedTask;
@@ -57,15 +57,15 @@ public class VentaMatchRepository : IVentaMatchRepository
     public async Task EliminarRangoPorIdsAsync(List<Guid> ids, CancellationToken cancellationToken)
     {
         if (ids.Count == 0) return;
-        await _context.VentaMatch
-            .Where(v => ids.Contains(v.IdVentaMatch))
+        await _context.CompraMatch
+            .Where(c => ids.Contains(c.IdCompraMatch))
             .ExecuteDeleteAsync(cancellationToken);
     }
 
     public async Task EliminarPorCargaFisicoAsync(Guid idCarga, CancellationToken cancellationToken)
     {
-        await _context.VentaMatch
-            .Where(v => v.IdCarga == idCarga)
+        await _context.CompraMatch
+            .Where(c => c.IdCarga == idCarga)
             .ExecuteDeleteAsync(cancellationToken);
     }
 }

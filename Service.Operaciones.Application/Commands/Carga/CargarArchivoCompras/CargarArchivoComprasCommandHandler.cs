@@ -1,3 +1,4 @@
+using System.Globalization;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Service.Operaciones.Application.Common.Exceptions;
@@ -197,6 +198,36 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
         }
     }
 
+    private static readonly string[] FormatosFecha = new[]
+    {
+        "dd/MM/yyyy",
+        "d/M/yyyy",
+        "dd-MM-yyyy",
+        "d-M-yyyy",
+        "yyyy-MM-dd",
+        "yyyy/MM/dd",
+        "dd/MM/yyyy HH:mm:ss",
+        "d/M/yyyy HH:mm:ss",
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy/MM/dd HH:mm:ss"
+    };
+
+    private static readonly CultureInfo CulturaPeru = CultureInfo.GetCultureInfo("es-PE");
+
+    private static DateTime? ParseFecha(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var clean = raw.Trim();
+        if (DateTime.TryParseExact(clean, FormatosFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ||
+            DateTime.TryParseExact(clean, FormatosFecha, CulturaPeru, DateTimeStyles.None, out dt) ||
+            DateTime.TryParse(clean, CulturaPeru, DateTimeStyles.None, out dt) ||
+            DateTime.TryParse(clean, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+        {
+            return dt;
+        }
+        return null;
+    }
+
     private static CompraSire ConstruirCompra(int numeroLinea, Dictionary<string, string> c, string empresaRuc, string periodo, Guid idCarga, string usuario)
     {
         var rucFila = c.GetValueOrDefault("ruc");
@@ -208,7 +239,7 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
             idCarga: idCarga,
             numeroLinea: numeroLinea,
             carSunat: !string.IsNullOrWhiteSpace(c.GetValueOrDefault("car_sunat")) ? c["car_sunat"].Trim() : null,
-            fechaEmision: DateTime.TryParse(c.GetValueOrDefault("fecha_emision"), out var fe) ? fe : DateTime.UtcNow,
+            fechaEmision: ParseFecha(c.GetValueOrDefault("fecha_emision")) ?? DateTime.UtcNow,
             codigoTipoCp: c.GetValueOrDefault("tipo_cp") ?? string.Empty,
             serie: c.GetValueOrDefault("serie") ?? string.Empty,
             numero: c.GetValueOrDefault("numero") ?? string.Empty,
@@ -220,7 +251,7 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
             tipoCambio: decimal.TryParse(c.GetValueOrDefault("tipo_cambio"), out var tca) ? tca : 1.0000m,
             codigoEstadoComprobante: c.GetValueOrDefault("estado_comprobante") ?? "1",
             usuarioCreacion: usuario,
-            fechaVencimiento: DateTime.TryParse(c.GetValueOrDefault("fecha_vencimiento"), out var fv) ? fv : null,
+            fechaVencimiento: ParseFecha(c.GetValueOrDefault("fecha_vencimiento")),
             anioDocumento: string.IsNullOrEmpty(c.GetValueOrDefault("anio_documento")) ? null : c.GetValueOrDefault("anio_documento"),
             numeroFinal: string.IsNullOrEmpty(c.GetValueOrDefault("numero_final")) ? null : c.GetValueOrDefault("numero_final"),
             biGravadoDg: decimal.TryParse(c.GetValueOrDefault("bi_gravado_dg"), out var bg1) ? bg1 : 0,
@@ -233,7 +264,7 @@ public class CargarArchivoComprasCommandHandler : IRequestHandler<CargarArchivoC
             montoIsc: decimal.TryParse(c.GetValueOrDefault("monto_isc"), out var isc) ? isc : 0,
             montoIcbper: decimal.TryParse(c.GetValueOrDefault("monto_icbper"), out var icb) ? icb : 0,
             montoOtrosTributos: decimal.TryParse(c.GetValueOrDefault("monto_otros_tributos"), out var otc) ? otc : 0,
-            fechaEmisionDocModificado: DateTime.TryParse(c.GetValueOrDefault("fecha_emision_doc_modificado"), out var fem) ? fem : null,
+            fechaEmisionDocModificado: ParseFecha(c.GetValueOrDefault("fecha_emision_doc_modificado")),
             codigoTipoCpModificado: string.IsNullOrEmpty(c.GetValueOrDefault("tipo_cp_modificado")) ? null : c.GetValueOrDefault("tipo_cp_modificado"),
             serieCpModificado: string.IsNullOrEmpty(c.GetValueOrDefault("serie_cp_modificado")) ? null : c.GetValueOrDefault("serie_cp_modificado"),
             codDamDsi: string.IsNullOrEmpty(c.GetValueOrDefault("cod_dam_dsi")) ? null : c.GetValueOrDefault("cod_dam_dsi"),

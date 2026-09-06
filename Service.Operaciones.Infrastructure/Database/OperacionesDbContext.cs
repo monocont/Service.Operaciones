@@ -12,6 +12,8 @@ public class OperacionesDbContext : DbContext
     public DbSet<Venta> Venta => Set<Venta>();
     public DbSet<VentaEmpresa> VentaEmpresa => Set<VentaEmpresa>();
     public DbSet<VentaMatch> VentaMatch => Set<VentaMatch>();
+    public DbSet<CompraEmpresa> CompraEmpresa => Set<CompraEmpresa>();
+    public DbSet<CompraMatch> CompraMatch => Set<CompraMatch>();
 
     public OperacionesDbContext(DbContextOptions<OperacionesDbContext> options) : base(options) { }
 
@@ -45,7 +47,7 @@ public class OperacionesDbContext : DbContext
             entity.Property(e => e.IdTipoOperacion).HasColumnName("id_tipo_operacion").HasConversion<int>().IsRequired();
             entity.Property(e => e.Formato).HasColumnName("formato").HasConversion<string>().HasMaxLength(20).IsRequired();
             entity.Property(e => e.NombreOriginal).HasColumnName("nombre_original").HasMaxLength(255).IsRequired();
-            entity.Property(e => e.HashDocumento).HasColumnName("hash_documento").HasMaxLength(64).IsRequired();
+            entity.Property(e => e.HashDocumento).HasColumnName("hash_documento").HasMaxLength(250).IsRequired();
             entity.Property(e => e.NumRegistros).HasColumnName("num_registros").HasDefaultValue(0);
             entity.Property(e => e.NumRegistrosValidos).HasColumnName("num_registros_validos").HasDefaultValue(0);
             entity.Property(e => e.NumRegistrosError).HasColumnName("num_registros_error").HasDefaultValue(0);
@@ -335,6 +337,147 @@ public class OperacionesDbContext : DbContext
             entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_venta_match_carga");
             entity.HasIndex(e => new { e.Serie, e.Numero }).HasDatabaseName("idx_venta_match_serie_num");
             entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo }).HasDatabaseName("idx_venta_match_empresa_periodo");
+        });
+
+        modelBuilder.Entity<CompraEmpresa>(entity =>
+        {
+            entity.ToTable("compra_empresa");
+            entity.HasKey(e => e.IdCompraEmpresa);
+            entity.Property(e => e.IdCompraEmpresa).HasColumnName("id_compra_empresa").HasColumnType("uuid");
+            entity.Property(e => e.IdCarga).HasColumnName("id_carga").HasColumnType("uuid");
+            entity.Property(e => e.EmpresaRuc).HasColumnName("empresa_ruc").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Periodo).HasColumnName("periodo").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.NumeroLinea).HasColumnName("numero_linea").IsRequired();
+
+            entity.Property(e => e.CarSunat).HasColumnName("car_sunat").HasMaxLength(40);
+            entity.Property(e => e.FechaEmision).HasColumnName("fecha_emision").HasColumnType("date").IsRequired();
+            entity.Property(e => e.FechaVencimiento).HasColumnName("fecha_vencimiento").HasColumnType("date");
+            entity.Property(e => e.CodigoTipoCp).HasColumnName("codigo_tipo_cp").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Serie).HasColumnName("serie").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.AnioDocumento).HasColumnName("anio_documento").HasMaxLength(20);
+            entity.Property(e => e.Numero).HasColumnName("numero").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.NumeroFinal).HasColumnName("numero_final").HasMaxLength(20);
+            entity.Property(e => e.CodigoTipoDocIdentidad).HasColumnName("codigo_tipo_doc_identidad").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.NroDocIdentidad).HasColumnName("nro_doc_identidad").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.RazonSocial).HasColumnName("razon_social").HasMaxLength(1500).IsRequired();
+
+            entity.Property(e => e.BiGravadoDg).HasColumnName("bi_gravado_dg").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.IgvIpmDg).HasColumnName("igv_ipm_dg").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.BiGravadoDgng).HasColumnName("bi_gravado_dgng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.IgvIpmDgng).HasColumnName("igv_ipm_dgng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.BiGravadoDng).HasColumnName("bi_gravado_dng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.IgvIpmDng).HasColumnName("igv_ipm_dng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.ValorAdqNg).HasColumnName("valor_adq_ng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoIsc).HasColumnName("monto_isc").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoIcbper).HasColumnName("monto_icbper").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoOtrosTributos).HasColumnName("monto_otros_tributos").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.TotalCp).HasColumnName("total_cp").HasColumnType("numeric(18,8)").IsRequired();
+
+            entity.Property(e => e.CodigoMoneda).HasColumnName("codigo_moneda").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.TipoCambio).HasColumnName("tipo_cambio").HasColumnType("numeric(18,8)");
+
+            entity.Property(e => e.FechaEmisionDocModificado).HasColumnName("fecha_emision_doc_modificado").HasColumnType("date");
+            entity.Property(e => e.CodigoTipoCpModificado).HasColumnName("codigo_tipo_cp_modificado").HasMaxLength(20);
+            entity.Property(e => e.SerieCpModificado).HasColumnName("serie_cp_modificado").HasMaxLength(20);
+            entity.Property(e => e.CodDamDsi).HasColumnName("cod_dam_dsi").HasMaxLength(20);
+            entity.Property(e => e.NumeroCpModificado).HasColumnName("numero_cp_modificado").HasMaxLength(20);
+
+            entity.Property(e => e.ClasifBssSss).HasColumnName("clasif_bss_sss").HasMaxLength(20);
+            entity.Property(e => e.IdProyectoOp).HasColumnName("id_proyecto_op").HasMaxLength(50);
+            entity.Property(e => e.PorcPart).HasColumnName("porc_part").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.Imb).HasColumnName("imb").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.CarOrigIndEI).HasColumnName("car_orig_ind_e_i").HasMaxLength(40);
+            entity.Property(e => e.Detraccion).HasColumnName("detraccion").HasMaxLength(50);
+            entity.Property(e => e.CodigoTipoNota).HasColumnName("codigo_tipo_nota").HasMaxLength(20);
+            entity.Property(e => e.CodigoEstadoComprobante).HasColumnName("codigo_estado_comprobante").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Incal).HasColumnName("incal").HasMaxLength(20);
+
+            entity.Property(e => e.CamposLibres).HasColumnName("campos_libres").HasMaxLength(500);
+            entity.Property(e => e.CreadoPor).HasColumnName("creado_por").HasMaxLength(150);
+            entity.Property(e => e.FechaCreacion).HasColumnName("fecha_creacion");
+            entity.Property(e => e.ModificadoPor).HasColumnName("modificado_por").HasMaxLength(150);
+            entity.Property(e => e.FechaModificacion).HasColumnName("fecha_modificacion");
+            entity.Property(e => e.Activo).HasColumnName("activo").HasDefaultValue(true);
+            entity.HasQueryFilter(e => e.Activo);
+
+            entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_ce_carga");
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.FechaEmision }).HasDatabaseName("idx_ce_empresa_periodo");
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.NroDocIdentidad, e.CodigoTipoCp, e.Serie, e.Numero }).HasDatabaseName("idx_ce_cruce_match");
+            entity.HasIndex(e => new { e.NroDocIdentidad, e.FechaEmision }).HasDatabaseName("idx_ce_proveedor");
+            entity.HasIndex(e => e.CarSunat).HasDatabaseName("idx_ce_car_sunat");
+        });
+
+        modelBuilder.Entity<CompraMatch>(entity =>
+        {
+            entity.ToTable("compra_match");
+            entity.HasKey(e => e.IdCompraMatch);
+            entity.Property(e => e.IdCompraMatch).HasColumnName("id_compra_match").HasColumnType("uuid");
+            entity.Property(e => e.IdCarga).HasColumnName("id_carga").HasColumnType("uuid");
+            entity.Property(e => e.EmpresaRuc).HasColumnName("empresa_ruc").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Periodo).HasColumnName("periodo").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.NumeroLinea).HasColumnName("numero_linea").IsRequired();
+
+            entity.Property(e => e.OrigenDato).HasColumnName("origen_dato").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.EsCoincidenciaExacta).HasColumnName("es_coincidencia_exacta").IsRequired();
+            entity.Property(e => e.EsDiferencia).HasColumnName("es_diferencia").IsRequired();
+            entity.Property(e => e.EsSoloUnOrigen).HasColumnName("es_solo_un_origen").IsRequired();
+
+            entity.Property(e => e.CarSunat).HasColumnName("car_sunat").HasMaxLength(40);
+            entity.Property(e => e.FechaEmision).HasColumnName("fecha_emision").HasColumnType("date").IsRequired();
+            entity.Property(e => e.FechaVencimiento).HasColumnName("fecha_vencimiento").HasColumnType("date");
+            entity.Property(e => e.CodigoTipoCp).HasColumnName("codigo_tipo_cp").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Serie).HasColumnName("serie").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.AnioDocumento).HasColumnName("anio_documento").HasMaxLength(20);
+            entity.Property(e => e.Numero).HasColumnName("numero").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.NumeroFinal).HasColumnName("numero_final").HasMaxLength(20);
+            entity.Property(e => e.CodigoTipoDocIdentidad).HasColumnName("codigo_tipo_doc_identidad").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.NroDocIdentidad).HasColumnName("nro_doc_identidad").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.RazonSocial).HasColumnName("razon_social").HasMaxLength(1500).IsRequired();
+
+            entity.Property(e => e.BiGravadoDg).HasColumnName("bi_gravado_dg").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.IgvIpmDg).HasColumnName("igv_ipm_dg").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.BiGravadoDgng).HasColumnName("bi_gravado_dgng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.IgvIpmDgng).HasColumnName("igv_ipm_dgng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.BiGravadoDng).HasColumnName("bi_gravado_dng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.IgvIpmDng).HasColumnName("igv_ipm_dng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.ValorAdqNg).HasColumnName("valor_adq_ng").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoIsc).HasColumnName("monto_isc").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoIcbper).HasColumnName("monto_icbper").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.MontoOtrosTributos).HasColumnName("monto_otros_tributos").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.TotalCp).HasColumnName("total_cp").HasColumnType("numeric(18,8)").IsRequired();
+
+            entity.Property(e => e.CodigoMoneda).HasColumnName("codigo_moneda").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.TipoCambio).HasColumnName("tipo_cambio").HasColumnType("numeric(18,8)");
+
+            entity.Property(e => e.FechaEmisionDocModificado).HasColumnName("fecha_emision_doc_modificado").HasColumnType("date");
+            entity.Property(e => e.CodigoTipoCpModificado).HasColumnName("codigo_tipo_cp_modificado").HasMaxLength(20);
+            entity.Property(e => e.SerieCpModificado).HasColumnName("serie_cp_modificado").HasMaxLength(20);
+            entity.Property(e => e.CodDamDsi).HasColumnName("cod_dam_dsi").HasMaxLength(20);
+            entity.Property(e => e.NumeroCpModificado).HasColumnName("numero_cp_modificado").HasMaxLength(20);
+
+            entity.Property(e => e.ClasifBssSss).HasColumnName("clasif_bss_sss").HasMaxLength(20);
+            entity.Property(e => e.IdProyectoOp).HasColumnName("id_proyecto_op").HasMaxLength(50);
+            entity.Property(e => e.PorcPart).HasColumnName("porc_part").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.Imb).HasColumnName("imb").HasColumnType("numeric(18,8)");
+            entity.Property(e => e.CarOrigIndEI).HasColumnName("car_orig_ind_e_i").HasMaxLength(40);
+            entity.Property(e => e.Detraccion).HasColumnName("detraccion").HasMaxLength(50);
+            entity.Property(e => e.CodigoTipoNota).HasColumnName("codigo_tipo_nota").HasMaxLength(20);
+            entity.Property(e => e.CodigoEstadoComprobante).HasColumnName("codigo_estado_comprobante").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Incal).HasColumnName("incal").HasMaxLength(20);
+
+            entity.Property(e => e.CamposLibres).HasColumnName("campos_libres").HasMaxLength(500);
+            entity.Property(e => e.CreadoPor).HasColumnName("creado_por").HasMaxLength(150);
+            entity.Property(e => e.FechaCreacion).HasColumnName("fecha_creacion");
+            entity.Property(e => e.ModificadoPor).HasColumnName("modificado_por").HasMaxLength(150);
+            entity.Property(e => e.FechaModificacion).HasColumnName("fecha_modificacion");
+            entity.Property(e => e.Activo).HasColumnName("activo").HasDefaultValue(true);
+            entity.HasQueryFilter(e => e.Activo);
+
+            entity.HasIndex(e => e.IdCarga).HasDatabaseName("idx_cm_carga");
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.FechaEmision }).HasDatabaseName("idx_cm_empresa_periodo");
+            entity.HasIndex(e => new { e.EmpresaRuc, e.Periodo, e.NroDocIdentidad, e.CodigoTipoCp, e.Serie, e.Numero }).HasDatabaseName("idx_cm_cruce_match");
+            entity.HasIndex(e => new { e.NroDocIdentidad, e.FechaEmision }).HasDatabaseName("idx_cm_proveedor");
+            entity.HasIndex(e => e.CarSunat).HasDatabaseName("idx_cm_car_sunat");
         });
     }
 }
