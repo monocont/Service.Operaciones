@@ -92,4 +92,21 @@ public class ArchivoCargaRepository : IArchivoCargaRepository
             .Where(a => a.IdCarga == idCarga)
             .ExecuteDeleteAsync(cancellationToken);
     }
+
+    public async Task<List<ArchivoCarga>> ObtenerCargasPorRucsYAnioAsync(List<string> rucs, int anio, CancellationToken cancellationToken)
+    {
+        if (rucs == null || rucs.Count == 0)
+        {
+            return new List<ArchivoCarga>();
+        }
+
+        var anioStr = anio.ToString();
+        return await _context.ArchivoCarga
+            .AsNoTracking()
+            .Where(a => rucs.Contains(a.EmpresaRuc)
+                     && a.Periodo.StartsWith(anioStr)
+                     && a.Activo
+                     && a.Estado == EstadoCarga.Ok)
+            .ToListAsync(cancellationToken);
+    }
 }

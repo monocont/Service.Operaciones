@@ -13,4 +13,5 @@ public interface IArchivoCargaRepository
     Task AgregarAsync(ArchivoCarga archivoCarga, CancellationToken cancellationToken);
     Task ActualizarAsync(ArchivoCarga archivoCarga, CancellationToken cancellationToken);
     Task EliminarFisicoAsync(Guid idCarga, CancellationToken cancellationToken);
+    Task<List<ArchivoCarga>> ObtenerCargasPorRucsYAnioAsync(List<string> rucs, int anio, CancellationToken cancellationToken);
 }

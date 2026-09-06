@@ -73,6 +73,43 @@ public class EmpresaHttpService : IEmpresaService
         }
     }
 
+    public async Task<List<Service.Operaciones.Application.DTOs.LimitesTributarios.EmpresaConLimitesHttpDTO>> ObtenerEmpresasConLimitesAsync(int anio, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await EnviarAsync($"api/v1/empresa/usuario-empresas-limites?anio={anio}", cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Service.Empresa respondió {Status} al obtener empresas y límites para el año {Anio}.", response.StatusCode, anio);
+                return new List<Service.Operaciones.Application.DTOs.LimitesTributarios.EmpresaConLimitesHttpDTO>();
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            var root = json.RootElement;
+
+            JsonElement arrayElement = root;
+            if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+            {
+                arrayElement = data;
+            }
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            var items = JsonSerializer.Deserialize<List<Service.Operaciones.Application.DTOs.LimitesTributarios.EmpresaConLimitesHttpDTO>>(arrayElement.GetRawText(), options);
+            return items ?? new List<Service.Operaciones.Application.DTOs.LimitesTributarios.EmpresaConLimitesHttpDTO>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al consultar empresas y límites en Service.Empresa para el año {Anio}.", anio);
+            return new List<Service.Operaciones.Application.DTOs.LimitesTributarios.EmpresaConLimitesHttpDTO>();
+        }
+    }
+
     /// <summary>
     /// Envía la petición propagando el Authorization header del usuario original.
     /// </summary>
